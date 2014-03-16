@@ -1,0 +1,36 @@
+.hidden-xs
+  .avatar
+    a href="/"
+      img src="/images/avatar.png"
+
+  .personal-info
+    h3 Jiří Pospíšil
+
+    .icons
+      a href="https://github.com/mekishizufu"
+        i.fa.fa-github
+      a href="https://twitter.com/JiriPospisil"
+        i.fa.fa-twitter
+      a href="http://stackoverflow.com/users/19093/jiri-pospisil"
+        i.fa.fa-stack-overflow
+
+    p I'm a full stack developer currently working primarily with Ruby on Rails
+      and Ember.js.
+
+    p I live in the Czech Republic, love reading and learning new
+      things. I'm very passionate about technologies and computing in general.
+
+    p You can get in touch with me at <a href="mailto:mekishizufu@gmail.com">mekishizufu@gmail.com</a>
+
+  .articles-info
+    h5 Recent articles
+    ul
+      - blog.articles[0...10].each do |article|
+        li
+          == link_to article.title, article
+
+    h5 Archives
+    ul
+      - blog.articles.group_by { |a| a.date.year }.each do |year, articles|
+        li
+          == link_to "#{year} (#{articles.size})", "/#{year}.html"
