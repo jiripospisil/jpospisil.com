@@ -13,7 +13,7 @@
     <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
     <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
     <published>2014-03-16T16:00:00Z</published>
-    <updated>2014-03-16T17:21:35+01:00</updated>
+    <updated>2014-03-16T17:54:11+01:00</updated>
     <author>
       <name>Jiri Pospisil</name>
     </author>
@@ -56,11 +56,15 @@ later refer to them using the &lt;code&gt;$&lt;/code&gt; sign. Second, there are
 essentially functions that call an external command to perform an action.
 Finally, build statements are used to define dependencies between input and
 output files. If you were to write the same with Make using its conventions,
-you&amp;rsquo;d probably end up with something like this (LINK).&lt;/p&gt;
+you&amp;rsquo;d probably end up with something like
+&lt;a href="https://gist.github.com/mekishizufu/5f0750989c2cefc0e257"&gt;this&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;To see a more realistic example with proper dependency tracking, I converted
-&lt;a href="http://libgit2.github.com"&gt;libgit2&lt;/a&gt;&amp;rsquo;s &lt;a href="https://github.com/libgit2/libgit2/blob/2b403/Makefile.embed"&gt;Makefile.embed&lt;/a&gt; to Ninja. The Makefile compiles libgit2 and creates a
-static library out of it. You can see the result here (ODKAZ).&lt;/p&gt;
+&lt;a href="http://libgit2.github.com"&gt;libgit2&lt;/a&gt;&amp;rsquo;s
+&lt;a href="https://github.com/libgit2/libgit2/blob/2b403/Makefile.embed"&gt;Makefile.embed&lt;/a&gt;
+to Ninja. The Makefile compiles libgit2 and creates a static library out of it.
+You can see the result
+&lt;a href="https://gist.github.com/mekishizufu/1d099dda373280206aee"&gt;here&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;You&amp;rsquo;ve probably noticed a few things. First, Ninja scripts are explicit. You
 cannot use any fancy substitution/wildcard functions (or any other control
