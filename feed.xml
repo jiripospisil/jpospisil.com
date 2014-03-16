@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Jiri Pospisil's blog</title>
+  <id>http://jpospisil.com</id>
+  <link href="http://jpospisil.com"/>
+  <link href="http://jpospisil.com/feed.xml" rel="self"/>
+  <updated>2014-03-16T16:00:00Z</updated>
+  <author>
+    <name>Jiri Pospisil</name>
+  </author>
+  <entry>
+    <title>Replacing Make with Ninja</title>
+    <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
+    <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
+    <published>2014-03-16T16:00:00Z</published>
+    <updated>2014-03-16T17:21:35+01:00</updated>
+    <author>
+      <name>Jiri Pospisil</name>
+    </author>
+    <content type="html">&lt;p&gt;Make and all of its flavours have been here for almost 40 years and it&amp;rsquo;s a tool
+hard to beat for many things. There are however cases when you do not need the
+power of Make and are willing to trade the flexibility for something else. In
+case of &lt;a href="http://martine.github.io/ninja"&gt;Ninja&lt;/a&gt;, for its speed.&lt;/p&gt;
+
+&lt;p&gt;Speed is the main motivation behind Ninja and its decisions how to write your
+build files. Ninja was written by &lt;a href="http://neugierig.org"&gt;Evan Martin&lt;/a&gt;
+specifically to fight slow build cycles while working on Google Chrome. &lt;/p&gt;
+
+&lt;p&gt;The bigger the project, the longer it takes to figure out what files need to be
+recompiled or if any action is required at all. As a result of numerous
+optimizations, Ninja is much faster when compared to alternatives.  Ninja&amp;rsquo;s
+secret is to do the least amount of work possible and let other more high level
+tools to handle the rest upfront. &lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s see an example of a simple script featuring all of the abstractions Ninja
+provides:&lt;/p&gt;
+&lt;pre class="highlight shell"&gt;&lt;span class="c"&gt;# build.ninja&lt;/span&gt;
+cc     &lt;span class="o"&gt;=&lt;/span&gt; clang
+cflags &lt;span class="o"&gt;=&lt;/span&gt; -Weverything
+
+rule compile
+  &lt;span class="nb"&gt;command&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$cc&lt;/span&gt; &lt;span class="nv"&gt;$cflags&lt;/span&gt; -c &lt;span class="nv"&gt;$in&lt;/span&gt; -o &lt;span class="nv"&gt;$out&lt;/span&gt;
+
+rule link
+  &lt;span class="nb"&gt;command&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;$cc&lt;/span&gt; &lt;span class="nv"&gt;$in&lt;/span&gt; -o &lt;span class="nv"&gt;$out&lt;/span&gt;
+
+build hello.o: compile hello.c
+build hello: link hello.o
+
+default hello
+&lt;/pre&gt;
+
+&lt;p&gt;Putting aside the fact that there&amp;rsquo;s no point in writing something like this for
+a single file, let&amp;rsquo;s see what&amp;rsquo;s going on there. First, we define 2 variables and
+later refer to them using the &lt;code&gt;$&lt;/code&gt; sign. Second, there are rules. Rules are
+essentially functions that call an external command to perform an action.
+Finally, build statements are used to define dependencies between input and
+output files. If you were to write the same with Make using its conventions,
+you&amp;rsquo;d probably end up with something like this (LINK).&lt;/p&gt;
+
+&lt;p&gt;To see a more realistic example with proper dependency tracking, I converted
+&lt;a href="http://libgit2.github.com"&gt;libgit2&lt;/a&gt;&amp;rsquo;s &lt;a href="https://github.com/libgit2/libgit2/blob/2b403/Makefile.embed"&gt;Makefile.embed&lt;/a&gt; to Ninja. The Makefile compiles libgit2 and creates a
+static library out of it. You can see the result here (ODKAZ).&lt;/p&gt;
+
+&lt;p&gt;You&amp;rsquo;ve probably noticed a few things. First, Ninja scripts are explicit. You
+cannot use any fancy substitution/wildcard functions (or any other control
+structures for that matter). As a result, the script is not only much longer but
+it also cannot handle any conditions making it unsuitable to any multi
+platform/compiler development. And this is by design.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ve mentioned that Ninja is meant to be used with a higher level tool
+(generator). One of the reasons for doing that is to overcome the said issues.
+In practice this means that you do not care about the absence of conditions or
+any other capabilities because the generator handles it for you simply by
+generating a different set of build scripts.&lt;/p&gt;
+
+&lt;p&gt;Ninja comes with a simple &lt;a href="https://github.com/martine/ninja/blob/84986/misc/ninja_syntax.py"&gt;Python based
+generator&lt;/a&gt;.
+The generator is straightforward, you call the methods and it outputs the
+corresponding Ninja syntax to a file. Since it&amp;rsquo;s just Python, you can make all
+of the platform and compiler decisions here. In fact, this is the way Ninja
+itself is &lt;a href="https://github.com/martine/ninja/blob/84986/configure.py"&gt;built&lt;/a&gt;:&lt;/p&gt;
+&lt;pre class="highlight python"&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ninja_syntax&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Writer&lt;/span&gt;
+
+&lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"build.ninja"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"w"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;buildfile&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;n&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Writer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;buildfile&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;platform&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;is_msvc&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+        &lt;span class="n"&gt;n&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"link"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"$cxx $in $libs /nologo /link $ldflags /out:$out"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                &lt;span class="n"&gt;description&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"LINK $out"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;n&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"link"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"$cxx $ldflags -o $out $in $libs"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                &lt;span class="n"&gt;description&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"LINK $out"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;
+
+&lt;p&gt;The fun part is that Ninja is already supported by some of the most popular meta
+build systems out there - &lt;a href="http://www.cmake.org"&gt;CMake&lt;/a&gt; and
+&lt;a href="https://code.google.com/p/gyp"&gt;Gyp&lt;/a&gt;. If you have a CMake based project and
+assuming you have Ninja available in your PATH, all you need to do is to choose
+Ninja as the
+&lt;a href="http://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators"&gt;generator&lt;/a&gt;:&lt;/p&gt;
+&lt;pre class="highlight shell"&gt;&lt;span class="gp"&gt;$ &lt;/span&gt;&lt;span class="nb"&gt;cd &lt;/span&gt;libgit2 &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; mkdir build &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;cd &lt;/span&gt;build
+&lt;span class="gp"&gt;$ &lt;/span&gt;cmake -GNinja ..
+&lt;span class="gp"&gt;$ &lt;/span&gt;ninja
+&lt;/pre&gt;
+
+&lt;p&gt;With this change, CMake generates a bunch of Ninja build files and Ninja builds
+the project. Notice that there&amp;rsquo;s no need to specify the number of parallel jobs
+(&lt;code&gt;-j [jobs]&lt;/code&gt;) because Ninja automatically chooses the value based on the number
+of cores available. &lt;/p&gt;
+
+&lt;p&gt;The compilation speed is not very different although it might be a bit faster
+due to Ninja consuming very little CPU while driving the build process. What is
+however very significant are the time savings when working with the source code
+and invoking the build process again. A non-scientific benchmark performed on my laptop
+shows that Ninja is indeed much faster:&lt;/p&gt;
+
+&lt;table class="table table-hover"&gt;
+  &lt;thead&gt;
+    &lt;th&gt;&lt;/th&gt;
+    &lt;th&gt;&lt;/th&gt;
+    &lt;th&gt;No file changes&lt;/th&gt;
+    &lt;th&gt;1 file change&lt;/th&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;strong&gt;Make&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;0.670s&lt;/td&gt;
+      &lt;td&gt;2.404s&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;/td&gt;
+      &lt;td&gt;&lt;strong&gt;Ninja&lt;/strong&gt;&lt;/td&gt;
+      &lt;td&gt;0.041s&lt;/td&gt;
+      &lt;td&gt;0.761s&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;These savings will become even more significant as your project grows. I
+encourage you to try &lt;a href="https://github.com/martine/ninja"&gt;Ninja&lt;/a&gt; and compare the
+build cycle times with Make. You will very likely see a similar difference. If
+you want to learn more about Ninja, here&amp;rsquo;s a few links:&lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="http://martine.github.io/ninja"&gt;Ninja, a small build system with a focus on speed&lt;/a&gt; (homepage)&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://www.aosabook.org/en/posa/ninja.html"&gt;The Performance of Open Source Software | Ninja&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="http://neugierig.org/software/chromium/notes/2011/02/ninja.html"&gt;Ninja, a new build system&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+</content>
+  </entry>
+</feed>
