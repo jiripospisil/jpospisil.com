@@ -46,11 +46,15 @@ later refer to them using the `$` sign. Second, there are rules. Rules are
 essentially functions that call an external command to perform an action.
 Finally, build statements are used to define dependencies between input and
 output files. If you were to write the same with Make using its conventions,
-you'd probably end up with something like this (LINK).
+you'd probably end up with something like
+[this](https://gist.github.com/mekishizufu/5f0750989c2cefc0e257).
 
 To see a more realistic example with proper dependency tracking, I converted
-[libgit2](http://libgit2.github.com)'s [Makefile.embed](https://github.com/libgit2/libgit2/blob/2b403/Makefile.embed) to Ninja. The Makefile compiles libgit2 and creates a
-static library out of it. You can see the result here (ODKAZ).
+[libgit2](http://libgit2.github.com)'s
+[Makefile.embed](https://github.com/libgit2/libgit2/blob/2b403/Makefile.embed)
+to Ninja. The Makefile compiles libgit2 and creates a static library out of it.
+You can see the result
+[here](https://gist.github.com/mekishizufu/1d099dda373280206aee).
 
 You've probably noticed a few things. First, Ninja scripts are explicit. You
 cannot use any fancy substitution/wildcard functions (or any other control
