@@ -21,9 +21,8 @@ h1 {
   }
 }
 
-code {
-  color: #2A6496;
-  background-color: #F7FAFD;
+h2 {
+  font-size: 20px;
 }
 
 .published {
@@ -58,9 +57,18 @@ code {
 }
 
 .personal-info {
-  h3 {
+  h1 {
     text-align: center;
   }
+}
+
+code {
+  color: #2A6496;
+  background-color: #F7FAFD;
+}
+
+pre {
+  background-color: #fff;
 }
 
 .twitter-contact, .articles-info {
@@ -70,6 +78,11 @@ code {
 footer {
   text-align: center;
   font-size: 11px;
+}
+
+.image {
+  text-align: center;
+  margin: 20px 20px;
 }
 
 .hll { background-color: #ffffcc }
