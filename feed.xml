@@ -4,16 +4,610 @@
   <id>http://jpospisil.com</id>
   <link href="http://jpospisil.com"/>
   <link href="http://jpospisil.com/feed.xml" rel="self"/>
-  <updated>2014-03-16T16:00:00Z</updated>
+  <updated>2014-06-16T16:29:00Z</updated>
   <author>
     <name>Jiri Pospisil</name>
   </author>
+  <entry>
+    <title>The definitive guide to Arel, the SQL manager for Ruby</title>
+    <link rel="alternate" href="http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
+    <id>http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
+    <published>2014-06-16T16:29:00Z</published>
+    <updated>2014-06-16T18:46:24+02:00</updated>
+    <author>
+      <name>Jiri Pospisil</name>
+    </author>
+    <content type="html">&lt;p&gt;Arel is the kind of library that many of us Rails developers use on a daily
+basis and might not even know about it. So what&amp;rsquo;s this library whose name only
+pops up when everything else fails all about?&lt;/p&gt;
+
+&lt;p&gt;It&amp;rsquo;s all about providing frameworks with a way of building and representing SQL
+queries. It&amp;rsquo;s not the kind of library you would &lt;em&gt;typically&lt;/em&gt; want to use directly
+(although you could as shown in a minute). Arel is meant to be the basic
+building block upon which frameworks build their own APIs that are more suitable
+for the end user.&lt;/p&gt;
+
+&lt;p&gt;One of those frameworks is ActiveRecord (AR), the default ORM in Rails.
+ActiveRecord&amp;rsquo;s responsibility is to provide a connection to the database, a
+convenient way to specify relationships between your models, provide a nice
+query interface and all the other things we enjoy.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="c1"&gt;# ActiveRecord&lt;/span&gt;
+&lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;first&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;created_at: &lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;days&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;ago&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;.&lt;/span&gt;&lt;span class="no"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;current&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Behind the scenes, ActiveRecord uses Arel to build the queries and ultimately
+calls out to it to get the final SQL before shipping it to the database of your
+choice.&lt;/p&gt;
+
+&lt;p&gt;So how exactly Arel achieves building the queries in such a flexible way? By
+building an &lt;a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree"&gt;AST&lt;/a&gt;. Arel
+internally operates on AST nodes - you modify the query via a method call, Arel
+modifies or creates the appropriate node in the tree.&lt;/p&gt;
+
+&lt;div class="image"&gt;
+&lt;img src="/images/arel/ast.png" title="An select query represented via AST" /&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This kind of representation holds two important properties. First,
+composability. By being composable you gain the power to build the query
+iteratively, piece by piece, and even combine several queries together.  Many
+parts of the API (and consequently AR&amp;rsquo;s API) would be impossible or at least
+very difficult handle without this property.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="c1"&gt;# ActiveRecord&lt;/span&gt;
+
+&lt;span class="n"&gt;bob&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;email: &lt;/span&gt;&lt;span class="s2"&gt;"bob@test.com"&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;active: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users".* FROM "users" WHERE "users"."email" = 'bob@test.com' AND "users"."active" = 't'&lt;/span&gt;
+
+&lt;span class="n"&gt;details&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;select&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:email&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;:first_name&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;order&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;id&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="ss"&gt;:desc&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."id", "users"."email", "users"."first_name" FROM "users" ORDER BY "users"."id" DESC&lt;/span&gt;
+
+&lt;span class="n"&gt;bob&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;merge&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;details&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;first&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."id", "users"."email", "users"."first_name" FROM "users"&lt;/span&gt;
+&lt;span class="c1"&gt;#    WHERE "users"."email" = 'bob@test.com' AND "users"."active" = 't'&lt;/span&gt;
+&lt;span class="c1"&gt;#    ORDER BY "users"."id" DESC LIMIT 1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;While a contrived example, it is sufficient to show that it&amp;rsquo;d be very difficult
+to work with these queries without some sort of abstract representation.&lt;/p&gt;
+
+&lt;p&gt;The other equally important property is the completely obliviousness to the
+outside world. Arel doesn&amp;rsquo;t care what&amp;rsquo;s going to happen with the result. It
+might end up converted into a SQL query or into an entirely different format. In
+fact, Arel is able to convert the query into the Graphviz&amp;rsquo;s dot format and you
+can create pretty diagrams out of it (more on that later).&lt;/p&gt;
+
+&lt;div class="image"&gt;
+&lt;img src="/images/arel/arel_to_formats.png" title="Arel converted to other formats" /&gt;
+&lt;/div&gt;
+
+&lt;p&gt;So far we&amp;rsquo;ve seen only &lt;a href="http://guides.rubyonrails.org/active_record_querying.html"&gt;ActiveRecord&amp;rsquo;s query
+interface&lt;/a&gt;, the part
+built on top of Arel. Let&amp;rsquo;s get below the surface and start working with Arel
+directly. To play along, use the following instructions. The script will
+download the correct version of libraries and leave you inside a Pry REPL
+instance (run &lt;code&gt;bundle console&lt;/code&gt; if you&amp;rsquo;ve left the REPL and want to come back). It&amp;rsquo;s
+always a good idea to inspect all 3rd party scripts before you run them.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight shell"&gt;&lt;span class="nb"&gt;cd&lt;/span&gt; /tmp
+mkdir arel_playground &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;cd &lt;/span&gt;arel_playground
+
+wget http://jpospisil.com/arel_setup.sh
+&lt;span class="c"&gt;# or&lt;/span&gt;
+curl -L -o arel_setup.sh http://jpospisil.com/arel_setup.sh
+
+bash ./arel_setup.sh
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;To stay current for the foreseeable future, the text is based on soon-to-be
+released version of Arel. The text also contains a lot of links to the actual
+Arel&amp;rsquo;s source code, you are strongly encouraged to look around the file beyond
+the highlighted area to see all of the options!&lt;/p&gt;
+
+&lt;h2&gt;Diving in with SelectManager&lt;/h2&gt;
+
+&lt;p&gt;Let&amp;rsquo;s start by building a select query that will give us all users. First, we
+need to create an object representing the table itself. Notice that you can name
+the table whatever you want, it doesn&amp;rsquo;t have to exist anywhere.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;users&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:users&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;code&gt;Arel::Table&lt;/code&gt; itself doesn&amp;rsquo;t do much but it has &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L45-L97"&gt;a lot of handy
+methods&lt;/a&gt;
+which are responsible for delegating the calls deeper into the system. The
+method we are interested in now is the
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L83-85"&gt;project&lt;/a&gt;
+method. The name comes from &lt;a href="http://en.wikipedia.org/wiki/Projection_(relational_algebra)"&gt;relational
+algebra&lt;/a&gt; but rest
+assured, it&amp;rsquo;s just a plain &lt;code&gt;select&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Notice the use of
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel.rb#L30-32"&gt;Arel.star&lt;/a&gt;, a
+convenience method for the &lt;code&gt;*&lt;/code&gt; character. What we got back is an instance of
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb"&gt;Arel::SelectManager&lt;/a&gt;,
+the object responsible for assembling of the select query. Now we should be able
+to get the resulting SQL from &lt;code&gt;select_manager&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; NoMethodError: undefined method `connection' for nil:NilClass&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And it didn&amp;rsquo;t work. If you think about it, the failure kind of makes sense
+(although the error should be handled more gracefully) because we didn&amp;rsquo;t
+specified any database details and Arel has no way of knowing for what database
+we want the query generated. Databases may differ in syntax, capabilities and
+even in character escaping. Let&amp;rsquo;s get ourselves an ActiveRecord database
+connection and try again.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;establish_connection&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;adapter: &lt;/span&gt;&lt;span class="s2"&gt;"sqlite3"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;database: &lt;/span&gt;&lt;span class="s2"&gt;":memory:"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;users&lt;/span&gt;          &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:users&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users"&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Notice we passed &lt;code&gt;ActiveRecord::Base&lt;/code&gt; to the &lt;code&gt;Arel::Table&lt;/code&gt;&amp;rsquo;s constructor. We
+could have also set it globally via &lt;code&gt;Arel::Table.engine=&lt;/code&gt;. With all that in
+place, we finally we have our precious SQL query.&lt;/p&gt;
+
+&lt;p&gt;The interesting thing is the collaboration between Arel and ActiveRecord. Arel
+is technically independent from ActiveRecord but it needs to get the database
+details from somewhere and currently it uses ActiveRecord. More specifically,
+Arel requires ActiveRecord&amp;rsquo;s APIs. There&amp;rsquo;s even a fake ActiveRecord
+implementation,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/test/support/fake_record.rb"&gt;FakeRecord&lt;/a&gt;,
+that is &lt;a href="https://github.com/rails/arel/blob/f50de54/test/helper.rb#L6-L7"&gt;used&lt;/a&gt; to
+run the Arel&amp;rsquo;s tests. In the past you needed a running MySQL server.&lt;/p&gt;
+
+&lt;h2&gt;Getting picky&lt;/h2&gt;
+
+&lt;p&gt;Querying for all users&amp;#39; details is nice but let&amp;rsquo;s be more specific. Say we
+want to select only the users&amp;#39; ids and names. The key abstraction Arel provides
+for working with attributes (column names) is
+  &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/attributes/attribute.rb"&gt;Arel::Attribute&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;Arel::Attribute&lt;/code&gt; represents a single column of an arbitrary name. The easiest way
+ to get a hold of an &lt;code&gt;Arel::Attribute&lt;/code&gt; for a table is to use the
+ &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L99-101"&gt;Arel::Table#[]&lt;/a&gt;
+ method. We can use the result right away in the &lt;code&gt;project&lt;/code&gt; method.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."id", "users"."name" FROM "users&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As you&amp;rsquo;ve probably noticed, the class gets included with a bunch of modules
+which add a lot of functionality. The first module,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/expressions.rb"&gt;Arel::Expressions&lt;/a&gt;,
+adds the common aggregate functions.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:comments_count&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;average&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT AVG("users"."comments_count") AS avg_id FROM "users"&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The results of these aggregate functions are kept in variables with hardcoded
+names (&lt;code&gt;avg_id&lt;/code&gt; in this case). Fortunately,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/alias_predication.rb"&gt;Arel::AliasPredication&lt;/a&gt; comes to our rescue.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"status"&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;count&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"count"&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;&lt;span class="nf"&gt;group&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"vip"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."vip" AS status, COUNT("users"."vip") AS count FROM "users"  GROUP BY vip&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/math.rb"&gt;Arel::Math&lt;/a&gt;
+module is pretty neat. It implements the common math operators so that we can
+use them directly on the attributes as if we&amp;rsquo;re working with the values.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;((&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:stared_comments_count&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:comments_count&lt;/span&gt;&lt;span class="p"&gt;]).&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"ratio"&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."stared_comments_count" / "users"."comments_count" AS ratio FROM "users"&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;Extending our index finger&lt;/h2&gt;
+
+&lt;p&gt;Select queries which return data from the whole table are quite rare, usually
+you want to have more fine grained control. Let&amp;rsquo;s see how Arel handles these
+cases. The starting point is again
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/attributes/attribute.rb"&gt;Arel::Attribute&lt;/a&gt;.
+More specifically, it&amp;rsquo;s one of its included modules,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/predications.rb"&gt;Arel::Predications&lt;/a&gt;.
+By looking at the code you can see a lot of handy methods, many of which do not
+have their equivalent in ActiveRecord&amp;#39; APIs.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;23&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;or&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;42&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq_any&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="mi"&gt;23&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;42&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users"  WHERE ("users"."id" = 23 OR "users"."id" = 42)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;For more complicated queries, it&amp;rsquo;s usually best to the build the parts
+individually and combine them together at the end.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;admins_vips&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:admin&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;or&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;with_karma&lt;/span&gt;     &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:karma&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;gteq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5000&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;and&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:hellbanned&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+
+&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;]).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;admins_vips&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;or&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;with_karma&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;&lt;span class="nf"&gt;order&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;desc&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT COUNT("users"."id") FROM "users" WHERE (("users"."admin" = 't' OR "users"."vip" = 't') &lt;/span&gt;
+&lt;span class="c1"&gt;#      OR "users"."karma" &amp;gt;= 5000 AND "users"."hellbanned" = 'f')&lt;/span&gt;
+&lt;span class="c1"&gt;#    ORDER BY "users"."id" DESC&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;The more the merrier&lt;/h2&gt;
+
+&lt;p&gt;Next, let&amp;rsquo;s take a look at join statements. In line with the previously shown
+API, Arel &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb#L104-119"&gt;exposes
+joins&lt;/a&gt;
+directly from &lt;code&gt;Arel::SelectManager&lt;/code&gt;.  As expected, Arel supports the usual
+&lt;code&gt;INNER JOIN&lt;/code&gt;, and &lt;code&gt;LEFT&lt;/code&gt;, &lt;code&gt;RIGHT&lt;/code&gt;, &lt;code&gt;FULL&lt;/code&gt; &lt;code&gt;OUTER JOIN&lt;/code&gt; kinds. &lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;comments&lt;/span&gt;       &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:comments&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;on&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:user_id&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users" INNER JOIN "comments" ON "users"."id" = "comments"."user_id"&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;To create the remaining kinds of joins, we need to explicitly pass a second
+argument to the &lt;code&gt;join&lt;/code&gt; method.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;join&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;OuterJoin&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;
+  &lt;span class="nf"&gt;on&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:user_id&lt;/span&gt;&lt;span class="p"&gt;])).&lt;/span&gt;
+  &lt;span class="nf"&gt;having&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;count&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;lteq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;16&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;
+  &lt;span class="nf"&gt;take&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;15&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users" LEFT OUTER JOIN "comments" ON "users"."id" = "comments"."user_id" &lt;/span&gt;
+&lt;span class="c1"&gt;#    HAVING COUNT("comments"."id") &amp;lt;= 16 LIMIT 15&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Since the need for &lt;code&gt;OuterJoin&lt;/code&gt; is very common, there&amp;rsquo;s a shortcut called
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb#L117-119"&gt;outer_join&lt;/a&gt;, which internally calls the &lt;code&gt;join&lt;/code&gt; method with the
+&lt;code&gt;Arel::Nodes::OuterJoin&lt;/code&gt; argument for us. To get the remaining kinds of joins,
+there are &lt;code&gt;Arel::Nodes::FullOuterJoin&lt;/code&gt; and &lt;code&gt;Arel::Nodes::RightOuterJoin&lt;/code&gt; nodes
+available.&lt;/p&gt;
+
+&lt;p&gt;The rarely used &lt;code&gt;CROSS JOIN&lt;/code&gt; kind is not directly supported. What&amp;rsquo;s also not
+supported out of the box is the &lt;code&gt;USING&lt;/code&gt; clause but as with the previous case, we
+can get around that by resorting to creating &lt;code&gt;Arel::Nodes::SqlLiteral&lt;/code&gt; manually
+or better yet by rewriting the query to use the supported constructs.&lt;/p&gt;
+
+&lt;h2&gt;There&amp;rsquo;s always more&lt;/h2&gt;
+
+&lt;p&gt;Arel comes with support even for slightly advanced features such as &lt;code&gt;WITH&lt;/code&gt;
+statements or &lt;code&gt;WINDOW&lt;/code&gt; functions. Let&amp;rsquo;s try to replicate an example &lt;a href="http://www.postgresql.org/docs/9.3/static/queries-with.html"&gt;7.8.1.
+SELECT in WITH&lt;/a&gt;
+from the PostgreSQL manual. The query is quite complicated, it consists of 2
+&lt;code&gt;WITH&lt;/code&gt; statements and a few subqueries. Let&amp;rsquo;s focus first on the &lt;code&gt;WITH&lt;/code&gt;
+clauses &lt;code&gt;regional_sales&lt;/code&gt; and &lt;code&gt;top_regions&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;orders&lt;/span&gt;          &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:orders&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;reg_sales&lt;/span&gt;       &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:regional_sales&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;top_regions&lt;/span&gt;     &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Table&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:top_regions&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="n"&gt;reg_sales_query&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:amount&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;sum&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"total_sales"&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;
+                    &lt;span class="nf"&gt;group&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+&lt;span class="n"&gt;reg_sales_as&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;As&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;reg_sales&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;reg_sales_query&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Nothing we haven&amp;rsquo;t seen before. The only exception is the explicit instantiation
+of &lt;code&gt;Arel::Nodes::As&lt;/code&gt;. There doesn&amp;rsquo;t seem to be a way around it as you cannot
+create an alias via the usual &lt;code&gt;as&lt;/code&gt; method. &lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;top_regions_subquery&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;reg_sales&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;sql&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"SUM(total_sales) / 10"&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;top_regions_query&lt;/span&gt;    &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;reg_sales&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;reg_sales&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;]).&lt;/span&gt;
+                        &lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;reg_sales&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:total_sales&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;top_regions_subquery&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;top_regions_as&lt;/span&gt;       &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;As&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;top_regions&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;top_regions_query&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The use of
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel.rb#L26-L28"&gt;Arel.sql&lt;/a&gt; is
+not ideal, however, as with the previous part, there is not a way to use math
+operations on the result of the &lt;code&gt;sum&lt;/code&gt; call.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;attributes&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:product&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:quantity&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"product_units"&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+               &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:amount&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;as&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"product_sales"&lt;/span&gt;&lt;span class="p"&gt;)]&lt;/span&gt;
+
+&lt;span class="n"&gt;res&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;attributes&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;in&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;top_regions&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;top_regions&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;]))).&lt;/span&gt;
+        &lt;span class="nf"&gt;with&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="n"&gt;reg_sales_as&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;top_regions_as&lt;/span&gt;&lt;span class="p"&gt;]).&lt;/span&gt;&lt;span class="nf"&gt;group&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:region&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:product&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+
+&lt;span class="n"&gt;res&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;With all of that in place, we have our final query. If we look at the parts
+individually, they are pretty simple. Overall, however, the code is longer than
+a pure SQL solution. The fact doesn&amp;rsquo;t matter when using Arel pragmatically but
+if composed by hand, one has to always consider whether it&amp;rsquo;s actually worth the
+  effort.&lt;/p&gt;
+
+&lt;h2&gt;SelectManager is not the only one&lt;/h2&gt;
+
+&lt;p&gt;So far all we&amp;rsquo;ve been doing was writing select queries via &lt;code&gt;SelectManager&lt;/code&gt;, but
+Arel of course supports the other operations as well. Let&amp;rsquo;s quickly take a look
+at deleting. There are two ways you can create a delete query. The first way is
+to explicitly instantiate
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/delete_manager.rb"&gt;Arel::DeleteManager&lt;/a&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;delete_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;DeleteManager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;delete_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;from&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq_any&lt;/span&gt;&lt;span class="p"&gt;([&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;8&lt;/span&gt;&lt;span class="p"&gt;]))&lt;/span&gt;
+&lt;span class="n"&gt;delete_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; DELETE FROM "users" WHERE ("users"."id" = 4 OR "users"."id" = 8)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The other way, although it seems deprecated, is to create the delete statement
+from a select statement by calling
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/crud.rb#L32-37"&gt;compile_delete&lt;/a&gt;
+(there are similar methods for the other operations as well).  By looking at the
+code we can see that all it does is pick values out of the object it&amp;rsquo;s mixed
+into (&lt;code&gt;Arel::SelectManager&lt;/code&gt;) and passing it to a new instance of
+&lt;code&gt;Arel::DeleteManager&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;]).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:banned&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "users"."id", "users"."name" FROM "users"  WHERE "users"."banned = 't'&lt;/span&gt;
+
+&lt;span class="n"&gt;delete_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;compile_delete&lt;/span&gt;
+&lt;span class="n"&gt;delete_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; DELETE FROM "users" WHERE "users"."banned" = 't'&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The managers for the remaining operations,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/insert_manager.rb"&gt;InsertManager&lt;/a&gt;
+and
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/update_manager.rb"&gt;UpdateManager&lt;/a&gt;,
+work in a similar fashion. &lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;insert_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;InsertManager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;insert_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;insert&lt;/span&gt;&lt;span class="p"&gt;([[&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="s2"&gt;"Bob"&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:admin&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;]])&lt;/span&gt;
+&lt;span class="n"&gt;insert_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; INSERT INTO "users" ("name", "admin) VALUES ('Bob', 't')&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Notice that &lt;code&gt;Arel::InsertManager&lt;/code&gt; is able to figure out the name of the table
+we&amp;rsquo;re inserting to automatically through the use of &lt;code&gt;Arel::Attribute&lt;/code&gt;. If we&amp;rsquo;re to
+use string literals instead, we&amp;rsquo;d have to specify the table name via the
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/insert_manager.rb#L8-11"&gt;into&lt;/a&gt;
+method. The same is not offered in &lt;code&gt;Arel::UpdateManager&lt;/code&gt; and we have to use
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/update_manager.rb#L29-32"&gt;table&lt;/a&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;update_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;UpdateManager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;update_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;table&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;42&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;span class="n"&gt;update_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;set&lt;/span&gt;&lt;span class="p"&gt;([[&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="s2"&gt;"Bob"&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:admin&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;]])&lt;/span&gt;
+&lt;span class="n"&gt;update_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; UPDATE "users" SET "name" = 'Bob', "admin" = 't' WHERE "users"."id" = 42&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;The story of &lt;code&gt;.to_sql&lt;/code&gt;&lt;/h2&gt;
+
+&lt;p&gt;Throughout the article we&amp;rsquo;ve been calling &lt;code&gt;.to_sql&lt;/code&gt; in almost every example and
+never actually talked about how it works. As mentioned in the beginning, Arel
+internally represents all queries as nodes in an abstract syntax tree. The
+managers create and modify these trees. Naturally, something later has to take
+the resulting tree and process it to the final output. Arel uses various kinds
+of visitors to accomplish this (see the &lt;a href="http://en.wikipedia.org/wiki/Visitor_pattern"&gt;Visitor
+pattern&lt;/a&gt;). &lt;/p&gt;
+
+&lt;p&gt;In essence, the visitor pattern abstracts away how the nodes of an AST are
+processed from the nodes themselves. The nodes stay the same, yet it&amp;rsquo;s possible
+to apply different visitors and get different results. This is exactly what Arel
+needs to generate all those kinds of output formats.&lt;/p&gt;
+
+&lt;p&gt;The Arel&amp;rsquo;s implementation of the visitor pattern is interesting. It uses a
+variation called &lt;a href="http://web.info.uvt.ro/~oaritoni/inginerie/Cursuri/DesignPatterns/L7/Visitor/nordberg.ps.pdf"&gt;Extrinsic
+Visitor&lt;/a&gt;.
+The variation takes great advantage of Ruby&amp;rsquo;s dynamic behavior and the
+information available at runtime. Instead of forcing the nodes to implement the
+&lt;code&gt;accept&lt;/code&gt; method, the visitor calls
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L4-6"&gt;accept&lt;/a&gt;
+on itself with the root node as argument. It then inspects the node to find out
+its type and
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L21-31"&gt;looks&lt;/a&gt;
+the appropriate visit method. To make the dispatching part faster, the code uses
+a simple &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L10-L15"&gt;hash
+table&lt;/a&gt;
+for caching purposes.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="p"&gt;{&lt;/span&gt; 
+  &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Visitors&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;SQLite&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;SelectStatement&lt;/span&gt; &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_SelectStatement"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;SqlLiteral&lt;/span&gt;      &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_SqlLiteral"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Or&lt;/span&gt;              &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_Or"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Attributes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Attribute&lt;/span&gt;  &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Attributes_Attribute"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;InnerJoin&lt;/span&gt;       &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_InnerJoin"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Having&lt;/span&gt;          &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_Having"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Nodes&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Limit&lt;/span&gt;           &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Arel_Nodes_Limit"&lt;/span&gt;
+    &lt;span class="no"&gt;Fixnum&lt;/span&gt;                       &lt;span class="o"&gt;=&amp;gt;&lt;/span&gt; &lt;span class="s2"&gt;"visit_Fixnum"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;If we look into the &lt;a href="https://github.com/rails/arel/tree/f50de54/lib/arel/visitors"&gt;visitors
+directory&lt;/a&gt;, we can
+see a few visitors that Arel comes with by default. Some of them directly
+correspond to a particular database, some are used only internally and some are
+used only from AR. Notice that all database related visitors inherit from the
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/to_sql.rb"&gt;to_sql&lt;/a&gt;
+visitor, which is doing most of the work, and that the particular database
+visitor handles only the differences specific to the concrete database. Let&amp;rsquo;s
+create a select manager and get the SQL query out of it without the &lt;code&gt;to_sql&lt;/code&gt;
+method.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users"&lt;/span&gt;
+
+&lt;span class="n"&gt;sqlite_visitor&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Visitors&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;SQLite&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;connection&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;collector&lt;/span&gt;      &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Collectors&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;SQLString&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;
+&lt;span class="n"&gt;collector&lt;/span&gt;      &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;sqlite_visitor&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;accept&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;ast&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;collector&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;collector&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;value&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT * FROM "users"&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;A collector is an object that gathers the results as they come in from the
+visitor. In this particular example, &lt;code&gt;collector&lt;/code&gt; could have been a Ruby&amp;rsquo;s own
+String and we&amp;rsquo;d get the same result (without calling the final &lt;code&gt;value&lt;/code&gt; of
+course). If we look at the actual &lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L27-L31"&gt;source
+code&lt;/a&gt;
+of &lt;code&gt;to_sql&lt;/code&gt;, we can see that it does the same except it gets the visitor
+directly from the connection. &lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s take a look at one more visitor,
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/dot.rb"&gt;Arel::Visitors::Dot&lt;/a&gt;.
+The visitor generates the Graphviz&amp;rsquo;s Dot format and we can use it to create
+diagrams out of an AST. To make things easier, there&amp;rsquo;s a convenient
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L17-L19"&gt;to_dot&lt;/a&gt;
+method we can use. We take the output and save it to a file. &lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="no"&gt;File&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;write&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;"arel.dot"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;select_manager&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_dot&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;On the command line, we use the &lt;code&gt;dot&lt;/code&gt; utility to convert the result to an image.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight shell"&gt;dot arel.dot -T png -o arel.png
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;div class="image"&gt;
+&lt;a href="/images/arel/arel_to_dot.png"&gt;
+&lt;img src="/images/arel/arel_to_dot_small.png" title="fu" /&gt;
+&lt;/a&gt;
+&lt;/div&gt;
+
+&lt;h2&gt;Back to upper levels&lt;/h2&gt;
+
+&lt;p&gt;We have all this power at our disposal at the Arel level but how can we leverage
+it with ActiveRecord? Turns out that we can very easily get the underlying
+&lt;code&gt;Arel::Table&lt;/code&gt; directly from our models with &lt;code&gt;&amp;lt;Table&amp;gt;.arel_table&lt;/code&gt;. What&amp;rsquo;s even
+better is that we can get the AST from our ActiveRecord&amp;rsquo;s queries and
+manipulate it. A word of warning though, working with the underlying Arel object
+is not officially supported and things may change between releases without
+notice.&lt;/p&gt;
+
+&lt;p&gt;First, we need a few throw-away tables and the corresponding ActiveRecord objects to work
+against. Let&amp;rsquo;s go again with users and comments.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;User&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;
+  &lt;span class="n"&gt;connection&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;create_table&lt;/span&gt; &lt;span class="n"&gt;table_name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;force: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;string&lt;/span&gt; &lt;span class="ss"&gt;:name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;null: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;integer&lt;/span&gt; &lt;span class="ss"&gt;:karma&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;null: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;default: &lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;boolean&lt;/span&gt; &lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;null: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;default: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;timestamps&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="n"&gt;create!&lt;/span&gt; &lt;span class="p"&gt;[{&lt;/span&gt;&lt;span class="nb"&gt;name&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;"Alice"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;karma: &lt;/span&gt;&lt;span class="mi"&gt;999&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;vip: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nb"&gt;name&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;"Bob"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;karma: &lt;/span&gt;&lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nb"&gt;name&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;"Charlie"&lt;/span&gt;&lt;span class="p"&gt;}]&lt;/span&gt;
+
+  &lt;span class="n"&gt;has_many&lt;/span&gt; &lt;span class="ss"&gt;:comments&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;dependent: :delete_all&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Comment&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;
+  &lt;span class="n"&gt;connection&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;create_table&lt;/span&gt; &lt;span class="n"&gt;table_name&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;force: &lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;text&lt;/span&gt; &lt;span class="ss"&gt;:text&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;null: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;integer&lt;/span&gt; &lt;span class="ss"&gt;:points&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;null: &lt;/span&gt;&lt;span class="kp"&gt;false&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;default: &lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;references&lt;/span&gt; &lt;span class="ss"&gt;:user&lt;/span&gt;
+    &lt;span class="n"&gt;t&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;timestamps&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="n"&gt;belongs_to&lt;/span&gt; &lt;span class="ss"&gt;:user&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;As mentioned in the previous paragraph, we can get the &lt;code&gt;Arel::Table&lt;/code&gt; object out
+by calling
+&lt;a href="https://github.com/rails/rails/blob/178448/activerecord/lib/active_record/core.rb#L216-L218"&gt;arel_table&lt;/a&gt;
+on the model. Once we do that, we can use the same methods as we&amp;rsquo;ve been using
+so far throughout the text.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="n"&gt;u&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;arel_table&lt;/span&gt;
+&lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:karma&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;gteq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;or&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;u&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;))).&lt;/span&gt;&lt;span class="nf"&gt;to_a&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; [#&amp;lt;User id: 1, name: "Alice"...&amp;gt;, #&amp;lt;User id: 2, name: "Bob"...&amp;gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here we&amp;rsquo;re passing an Arel node (&lt;code&gt;Arel::Nodes::Grouping&lt;/code&gt;) directly to AR&amp;rsquo;s
+&lt;code&gt;where&lt;/code&gt;. No need to convert anything as AR knows how to deal with these objects.
+Let&amp;rsquo;s switch the sides and use an AR query inside an Arel one.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;first&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;create!&lt;/span&gt; &lt;span class="ss"&gt;text: &lt;/span&gt;&lt;span class="s2"&gt;"Sample text!"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="ss"&gt;points: &lt;/span&gt;&lt;span class="mi"&gt;1001&lt;/span&gt;
+
+&lt;span class="n"&gt;c&lt;/span&gt;             &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;Comment&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;arel_table&lt;/span&gt;
+&lt;span class="n"&gt;popular_users&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;select&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;order&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="ss"&gt;karma: :desc&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;limit&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;comments&lt;/span&gt;      &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;project&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="no"&gt;Arel&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;star&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:points&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;and&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:user_id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;in&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;popular_users&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;ast&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+
+&lt;span class="no"&gt;Comment&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;find_by_sql&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;To execute Arel queries, we first need to get the SQL out of Arel and then feed
+it into
+&lt;a href="https://github.com/rails/rails/blob/178448/activerecord/lib/active_record/querying.rb#L38-L49"&gt;find_by_sql&lt;/a&gt;.
+Notice that we called &lt;code&gt;ast&lt;/code&gt; on &lt;code&gt;popular_users&lt;/code&gt; before passing it to Arel&amp;rsquo;s
+&lt;code&gt;in&lt;/code&gt;. That&amp;rsquo;s because &lt;code&gt;popular_users&lt;/code&gt; is an instance of &lt;code&gt;ActiveRecord::Relation&lt;/code&gt;
+and we need to get the underlying Arel AST. &lt;/p&gt;
+
+&lt;p&gt;There of course comes a time when you need to issue a query that doesn&amp;rsquo;t
+necessarily result in records coming back.  In that case, we can use the
+connection directly and call &lt;code&gt;execute&lt;/code&gt; with the SQL as the argument.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="no"&gt;ActiveRecord&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="no"&gt;Base&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;connection&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;execute&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:id&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;&lt;span class="nf"&gt;compile_delete&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;One issue you may run into when using ActiveRecord 4.1.x is that calling &lt;code&gt;to_sql&lt;/code&gt;
+might return an SQL query with bind parameters instead of the actual values. The
+issue has been solved on the current master branch and will be part of the next
+release. To get around that issue now however, we must use
+&lt;code&gt;unprepared_statement&lt;/code&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="c1"&gt;# ActiveRecord 4.1.x&lt;/span&gt;
+
+&lt;span class="n"&gt;sql&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;first&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "comments".* FROM "comments"  WHERE "comments"."user_id" = ?&lt;/span&gt;
+
+&lt;span class="n"&gt;sql&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;connection&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;unprepared_statement&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; 
+  &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;first&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;comments&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;to_sql&lt;/span&gt; 
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;span class="c1"&gt;# =&amp;gt; SELECT "comments".* FROM "comments"  WHERE "comments"."user_id" = 1&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The code in the &lt;code&gt;unprepared_statement&lt;/code&gt; block gets evaluated with a visitor that
+mixes in
+&lt;a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/bind_visitor.rb"&gt;Arel::Visitors::BindVisitor&lt;/a&gt;,
+which immediately resolves the bind parameters.&lt;/p&gt;
+
+&lt;h2&gt;Real world&lt;/h2&gt;
+
+&lt;p&gt;Having covered all of that, how do we use this in a real word application so
+that the code is maintainable and won&amp;rsquo;t become a mess? One way of doing it is to
+create a class that will represent our query. Let&amp;rsquo;s take a look at a simple
+example.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;PrivilegedUsersQuery&lt;/span&gt;
+  &lt;span class="kp"&gt;attr_reader&lt;/span&gt; &lt;span class="ss"&gt;:relation&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;initialize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;relation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;all&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="vi"&gt;@relation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;relation&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;find_each&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;relation&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;where&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;privileged_users&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="nf"&gt;find_each&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt;&lt;span class="n"&gt;block&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="kp"&gt;private&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;privileged_users&lt;/span&gt;
+    &lt;span class="n"&gt;with_high_karma&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;or&lt;/span&gt; &lt;span class="n"&gt;with_vip&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;with_high_karma&lt;/span&gt;
+    &lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:karma&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;gt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1000&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;with_vip&lt;/span&gt;
+    &lt;span class="n"&gt;table&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="ss"&gt;:vip&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="nf"&gt;eq&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kp"&gt;true&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+
+  &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;table&lt;/span&gt;
+    &lt;span class="no"&gt;User&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;arel_table&lt;/span&gt;
+  &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We take full advantage of the fact that we can build queries iteratively and
+dedicate a method to each part or similar, whatever feels like the best approach
+for the particular situation.&lt;/p&gt;
+&lt;pre&gt;&lt;code class="highlight ruby"&gt;&lt;span class="no"&gt;PrivilegedUsersQuery&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;new&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nf"&gt;find_each&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt; &lt;span class="o"&gt;|&lt;/span&gt;&lt;span class="n"&gt;user&lt;/span&gt;&lt;span class="o"&gt;|&lt;/span&gt; 
+ &lt;span class="c1"&gt;# ...&lt;/span&gt;
+&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;The end&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href="https://github.com/rails/arel"&gt;Arel&lt;/a&gt; is a great tool to build abstractions upon
+and a powerful helper when the abstractions fail to provide the functionality
+you need. By now you know everything there&amp;rsquo;s to know to use Arel effectively and
+most importantly you know where to look for answers when constructing a
+complicated query or when things go wrong. Please let me know if you found an
+error of any kind or have other suggestions.&lt;/p&gt;
+</content>
+  </entry>
   <entry>
     <title>Replacing Make with Ninja</title>
     <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
     <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
     <published>2014-03-16T16:00:00Z</published>
-    <updated>2014-03-16T17:54:11+01:00</updated>
+    <updated>2014-05-30T15:37:58+02:00</updated>
     <author>
       <name>Jiri Pospisil</name>
     </author>
@@ -34,7 +628,7 @@ tools to handle the rest upfront. &lt;/p&gt;
 
 &lt;p&gt;Let&amp;rsquo;s see an example of a simple script featuring all of the abstractions Ninja
 provides:&lt;/p&gt;
-&lt;pre class="highlight shell"&gt;&lt;span class="c"&gt;# build.ninja&lt;/span&gt;
+&lt;pre&gt;&lt;code class="highlight shell"&gt;&lt;span class="c"&gt;# build.ninja&lt;/span&gt;
 cc     &lt;span class="o"&gt;=&lt;/span&gt; clang
 cflags &lt;span class="o"&gt;=&lt;/span&gt; -Weverything
 
@@ -48,7 +642,7 @@ build hello.o: compile hello.c
 build hello: link hello.o
 
 default hello
-&lt;/pre&gt;
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;Putting aside the fact that there&amp;rsquo;s no point in writing something like this for
 a single file, let&amp;rsquo;s see what&amp;rsquo;s going on there. First, we define 2 variables and
@@ -84,7 +678,7 @@ The generator is straightforward, you call the methods and it outputs the
 corresponding Ninja syntax to a file. Since it&amp;rsquo;s just Python, you can make all
 of the platform and compiler decisions here. In fact, this is the way Ninja
 itself is &lt;a href="https://github.com/martine/ninja/blob/84986/configure.py"&gt;built&lt;/a&gt;:&lt;/p&gt;
-&lt;pre class="highlight python"&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ninja_syntax&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Writer&lt;/span&gt;
+&lt;pre&gt;&lt;code class="highlight python"&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;ninja_syntax&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;Writer&lt;/span&gt;
 
 &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="nb"&gt;open&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"build.ninja"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;"w"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;buildfile&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
     &lt;span class="n"&gt;n&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Writer&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;buildfile&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
@@ -97,7 +691,7 @@ itself is &lt;a href="https://github.com/martine/ninja/blob/84986/configure.py"&
         &lt;span class="n"&gt;n&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;rule&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;"link"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                 &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"$cxx $ldflags -o $out $in $libs"&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
                 &lt;span class="n"&gt;description&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;"LINK $out"&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
-&lt;/pre&gt;
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;The fun part is that Ninja is already supported by some of the most popular meta
 build systems out there - &lt;a href="http://www.cmake.org"&gt;CMake&lt;/a&gt; and
@@ -105,10 +699,10 @@ build systems out there - &lt;a href="http://www.cmake.org"&gt;CMake&lt;/a&gt; a
 assuming you have Ninja available in your PATH, all you need to do is to choose
 Ninja as the
 &lt;a href="http://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators"&gt;generator&lt;/a&gt;:&lt;/p&gt;
-&lt;pre class="highlight shell"&gt;&lt;span class="gp"&gt;$ &lt;/span&gt;&lt;span class="nb"&gt;cd &lt;/span&gt;libgit2 &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; mkdir build &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;cd &lt;/span&gt;build
+&lt;pre&gt;&lt;code class="highlight shell"&gt;&lt;span class="gp"&gt;$ &lt;/span&gt;&lt;span class="nb"&gt;cd &lt;/span&gt;libgit2 &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; mkdir build &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;cd &lt;/span&gt;build
 &lt;span class="gp"&gt;$ &lt;/span&gt;cmake -GNinja ..
 &lt;span class="gp"&gt;$ &lt;/span&gt;ninja
-&lt;/pre&gt;
+&lt;/code&gt;&lt;/pre&gt;
 
 &lt;p&gt;With this change, CMake generates a bunch of Ninja build files and Ninja builds
 the project. Notice that there&amp;rsquo;s no need to specify the number of parallel jobs
