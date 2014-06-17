@@ -56,6 +56,15 @@ h2 {
   }
 }
 
+.social-share-icons {
+  font-size: 20px;
+  text-align: center;
+
+  a + a {
+    margin-left: 20px;
+  }
+}
+
 .personal-info {
   h1 {
     text-align: center;
