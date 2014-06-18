@@ -150,7 +150,7 @@ select_manager.to_sql
 
 Notice we passed `ActiveRecord::Base` to the `Arel::Table`'s constructor. We
 could have also set it globally via `Arel::Table.engine=`. With all that in
-place, we finally we have our precious SQL query.
+place, we finally have our precious SQL query.
 
 The interesting thing is the collaboration between Arel and ActiveRecord. Arel
 is technically independent from ActiveRecord but it needs to get the database
