@@ -13,7 +13,7 @@
     <link rel="alternate" href="http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
     <id>http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
     <published>2014-06-16T16:29:00Z</published>
-    <updated>2014-06-16T23:58:28+02:00</updated>
+    <updated>2014-06-19T22:21:52+02:00</updated>
     <author>
       <name>Jiri Pospisil</name>
     </author>
@@ -148,7 +148,7 @@ connection and try again.&lt;/p&gt;
 
 &lt;p&gt;Notice we passed &lt;code&gt;ActiveRecord::Base&lt;/code&gt; to the &lt;code&gt;Arel::Table&lt;/code&gt;&amp;rsquo;s constructor. We
 could have also set it globally via &lt;code&gt;Arel::Table.engine=&lt;/code&gt;. With all that in
-place, we finally we have our precious SQL query.&lt;/p&gt;
+place, we finally have our precious SQL query.&lt;/p&gt;
 
 &lt;p&gt;The interesting thing is the collaboration between Arel and ActiveRecord. Arel
 is technically independent from ActiveRecord but it needs to get the database
