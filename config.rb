@@ -14,7 +14,7 @@ activate :syntax
 set :markdown_engine, :redcarpet
 set :markdown, fenced_code_blocks: true, smartypants: true
 
-page "/feed.xml", :layout => false
+page "/feed.xml", layout: false
 
 require "slim"
 
