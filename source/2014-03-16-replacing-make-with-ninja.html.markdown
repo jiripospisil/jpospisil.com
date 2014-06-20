@@ -20,6 +20,8 @@ optimizations, Ninja is much faster when compared to alternatives.  Ninja's
 secret is to do the least amount of work possible and let other more high level
 tools to handle the rest upfront. 
 
+READMORE
+
 Let's see an example of a simple script featuring all of the abstractions Ninja
 provides:
 

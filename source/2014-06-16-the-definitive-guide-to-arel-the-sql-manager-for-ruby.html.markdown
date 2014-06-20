@@ -20,6 +20,8 @@ ActiveRecord's responsibility is to provide a connection to the database, a
 convenient way to specify relationships between your models, provide a nice
 query interface and all the other things we enjoy.
 
+READMORE
+
 ```ruby
 # ActiveRecord
 User.first.comments.where(created_at: 2.days.ago..Time.current).limit(5)

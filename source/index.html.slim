@@ -7,7 +7,8 @@ per_page: 10
   h1 = link_to article.title, article
   .published Published on #{article.date.strftime("%b %e, %Y")}
 
-  = article.body
+  = article.summary
+  = link_to "Read more…", article
 
 - if paginate
   - if prev_page
