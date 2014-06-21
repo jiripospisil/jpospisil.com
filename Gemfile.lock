@@ -1,7 +1,7 @@
 GIT
-  remote: git://github.com/mekishizufu/rouge.git
-  revision: d98b3a58f9ff39861dab3d0dae19499287197005
-  ref: d98b3a5
+  remote: git://github.com/jneen/rouge.git
+  revision: ae5b406f6bfce307ca006a2ff645f3f7088e449d
+  ref: ae5b406f6b
   specs:
     rouge (1.4.0)
 
