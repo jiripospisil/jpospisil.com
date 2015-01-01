@@ -4,7 +4,7 @@
   <id>http://jpospisil.com</id>
   <link href="http://jpospisil.com"/>
   <link href="http://jpospisil.com/feed.xml" rel="self"/>
-  <updated>2014-06-16T16:29:00Z</updated>
+  <updated>2014-06-16T18:29:00+02:00</updated>
   <author>
     <name>Jiri Pospisil</name>
   </author>
@@ -12,8 +12,8 @@
     <title>The definitive guide to Arel, the SQL manager for Ruby</title>
     <link rel="alternate" href="http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
     <id>http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
-    <published>2014-06-16T16:29:00Z</published>
-    <updated>2014-06-20T21:53:00+02:00</updated>
+    <published>2014-06-16T18:29:00+02:00</published>
+    <updated>2015-01-01T15:03:26+01:00</updated>
     <author>
       <name>Jiri Pospisil</name>
     </author>
@@ -38,8 +38,8 @@ query interface and all the other things we enjoy.&lt;/p&gt;
     <title>Replacing Make with Ninja</title>
     <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
     <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
-    <published>2014-03-16T16:00:00Z</published>
-    <updated>2014-06-20T21:52:44+02:00</updated>
+    <published>2014-03-16T17:00:00+01:00</published>
+    <updated>2015-01-01T15:03:23+01:00</updated>
     <author>
       <name>Jiri Pospisil</name>
     </author>
