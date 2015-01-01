@@ -2,7 +2,6 @@
 title: The definitive guide to Arel, the SQL manager for Ruby
 date: 2014-06-16 16:29 UTC
 tags: ruby, arel
-layout: post
 author: Jiri Pospisil
 ---
 Arel is the kind of library that many of us Rails developers use on a daily

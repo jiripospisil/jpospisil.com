@@ -2,7 +2,6 @@
 title: Replacing Make with Ninja
 date: 2014-03-16 16:00 UTC
 tags: ninja, make, build tools
-layout: post
 author: Jiri Pospisil
 ---
 Make and all of its flavours have been here for almost 40 years and it's a tool
