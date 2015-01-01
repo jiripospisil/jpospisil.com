@@ -1,4 +1,4 @@
-- wrap_layout :layout do
+= wrap_layout :layout do
   - if is_blog_article?
     h1 = link_to current_article.title, current_article
     .published Published on #{current_article.date.strftime("%b %e, %Y")}
