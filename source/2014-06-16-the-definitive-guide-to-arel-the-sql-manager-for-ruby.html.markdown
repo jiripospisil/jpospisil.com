@@ -36,7 +36,7 @@ internally operates on AST nodes - you modify the query via a method call, Arel
 modifies or creates the appropriate node in the tree.
 
 <div class="image">
-<img src="/images/arel/ast.png" title="An select query represented via AST" />
+<img src="/images/arel/ast.png" width="347px" height="159px" title="An select query represented via AST" />
 </div>
 
 This kind of representation holds two important properties. First,
@@ -70,7 +70,7 @@ fact, Arel is able to convert the query into the Graphviz's dot format and you
 can create pretty diagrams out of it (more on that later).
 
 <div class="image">
-<img src="/images/arel/arel_to_formats.png" title="Arel converted to other formats" />
+<img src="/images/arel/arel_to_formats.png" width="356px" height="96px" title="Arel converted to other formats" />
 </div>
 
 So far we've seen only [ActiveRecord's query
@@ -179,7 +179,7 @@ select_manager = users.project(users[:id], users[:name])
 select_manager.to_sql
 # => SELECT "users"."id", "users"."name" FROM "users
 ```
-  
+
 As you've probably noticed, the class gets included with a bunch of modules
 which add a lot of functionality. The first module,
 [Arel::Expressions](https://github.com/rails/arel/blob/f50de54/lib/arel/expressions.rb),
@@ -239,7 +239,7 @@ with_karma     = users[:karma].gteq(5000).and(users[:hellbanned].eq(false))
 
 select_manager = users.project(users[:id]).where(admins_vips.or(with_karma)).order(users[:id].desc)
 select_manager.to_sql
-# => SELECT COUNT("users"."id") FROM "users" WHERE (("users"."admin" = 't' OR "users"."vip" = 't') 
+# => SELECT COUNT("users"."id") FROM "users" WHERE (("users"."admin" = 't' OR "users"."vip" = 't')
 #      OR "users"."karma" >= 5000 AND "users"."hellbanned" = 'f')
 #    ORDER BY "users"."id" DESC
 ```
@@ -250,7 +250,7 @@ Next, let's take a look at join statements. In line with the previously shown
 API, Arel [exposes
 joins](https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb#L104-119)
 directly from `Arel::SelectManager`.  As expected, Arel supports the usual
-`INNER JOIN`, and `LEFT`, `RIGHT`, `FULL` `OUTER JOIN` kinds. 
+`INNER JOIN`, and `LEFT`, `RIGHT`, `FULL` `OUTER JOIN` kinds.
 
 ```ruby
 comments       = Arel::Table.new(:comments, ActiveRecord::Base)
@@ -268,9 +268,9 @@ select_manager = users.project(Arel.star).join(comments, Arel::Nodes::OuterJoin)
   on(users[:id].eq(comments[:user_id])).
   having(comments[:id].count.lteq(16)).
   take(15)
-  
+
 select_manager.to_sql
-# => SELECT * FROM "users" LEFT OUTER JOIN "comments" ON "users"."id" = "comments"."user_id" 
+# => SELECT * FROM "users" LEFT OUTER JOIN "comments" ON "users"."id" = "comments"."user_id"
 #    HAVING COUNT("comments"."id") <= 16 LIMIT 15
 ```
 
@@ -306,7 +306,7 @@ reg_sales_as    = Arel::Nodes::As.new(reg_sales, reg_sales_query)
 
 Nothing we haven't seen before. The only exception is the explicit instantiation
 of `Arel::Nodes::As`. There doesn't seem to be a way around it as you cannot
-create an alias via the usual `as` method. 
+create an alias via the usual `as` method.
 
 ```ruby
 top_regions_subquery = reg_sales.project(Arel.sql("SUM(total_sales) / 10"))
@@ -373,7 +373,7 @@ The managers for the remaining operations,
 [InsertManager](https://github.com/rails/arel/blob/f50de54/lib/arel/insert_manager.rb)
 and
 [UpdateManager](https://github.com/rails/arel/blob/f50de54/lib/arel/update_manager.rb),
-work in a similar fashion. 
+work in a similar fashion.
 
 ```ruby
 insert_manager = Arel::InsertManager.new(ActiveRecord::Base)
@@ -405,7 +405,7 @@ internally represents all queries as nodes in an abstract syntax tree. The
 managers create and modify these trees. Naturally, something later has to take
 the resulting tree and process it to the final output. Arel uses various kinds
 of visitors to accomplish this (see the [Visitor
-pattern](http://en.wikipedia.org/wiki/Visitor_pattern)). 
+pattern](http://en.wikipedia.org/wiki/Visitor_pattern)).
 
 In essence, the visitor pattern abstracts away how the nodes of an AST are
 processed from the nodes themselves. The nodes stay the same, yet it's possible
@@ -428,7 +428,7 @@ table](https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L
 for caching purposes.
 
 ```ruby
-{ 
+{
   Arel::Visitors::SQLite => {
     Arel::Nodes::SelectStatement => "visit_Arel_Nodes_SelectStatement",
     Arel::Nodes::SqlLiteral      => "visit_Arel_Nodes_SqlLiteral",
@@ -471,14 +471,14 @@ String and we'd get the same result (without calling the final `value` of
 course). If we look at the actual [source
 code](https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L27-L31)
 of `to_sql`, we can see that it does the same except it gets the visitor
-directly from the connection. 
+directly from the connection.
 
 Let's take a look at one more visitor,
 [Arel::Visitors::Dot](https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/dot.rb).
 The visitor generates the Graphviz's Dot format and we can use it to create
 diagrams out of an AST. To make things easier, there's a convenient
 [to_dot](https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L17-L19)
-method we can use. We take the output and save it to a file. 
+method we can use. We take the output and save it to a file.
 
 ```ruby
 File.write("arel.dot", select_manager.to_dot)
@@ -567,7 +567,7 @@ it into
 [find\_by\_sql](https://github.com/rails/rails/blob/178448/activerecord/lib/active_record/querying.rb#L38-L49).
 Notice that we called `ast` on `popular_users` before passing it to Arel's
 `in`. That's because `popular_users` is an instance of `ActiveRecord::Relation`
-and we need to get the underlying Arel AST. 
+and we need to get the underlying Arel AST.
 
 There of course comes a time when you need to issue a query that doesn't
 necessarily result in records coming back.  In that case, we can use the
@@ -589,8 +589,8 @@ release. To get around that issue now however, we must use
 sql = User.first.comments.to_sql
 # => SELECT "comments".* FROM "comments"  WHERE "comments"."user_id" = ?
 
-sql = User.connection.unprepared_statement { 
-  User.first.comments.to_sql 
+sql = User.connection.unprepared_statement {
+  User.first.comments.to_sql
 }
 # => SELECT "comments".* FROM "comments"  WHERE "comments"."user_id" = 1
 ```
@@ -644,7 +644,7 @@ dedicate a method to each part or similar, whatever feels like the best approach
 for the particular situation.
 
 ```ruby
-PrivilegedUsersQuery.new.find_each do |user| 
+PrivilegedUsersQuery.new.find_each do |user|
  # ...
 end
 ```

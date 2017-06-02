@@ -1,2 +1,19 @@
 footer
-  p &copy; Copyright 2014, Jiří Pospíšil
+  - if is_blog_article?
+    .row
+      .col-sm-5.col-sm-offset-1
+        h5 Recent articles
+        ul
+          - blog.articles[0...10].each do |article|
+            li
+              == link_to article.title, article
+      .col-sm-5.col-sm-offset-1
+        h5 Archives
+        ul
+          - blog.articles.group_by { |a| a.date.year }.each do |year, articles|
+            li
+              == link_to "#{year} (#{articles.size})", "/#{year}.html"
+
+  .row
+    .col-sm-12.text-center
+      p &copy; Copyright 2016, Jiří Pospíšil

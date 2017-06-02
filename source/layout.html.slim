@@ -1,7 +1,7 @@
 doctype html
 html
   head
-    title #{current_article ? "#{current_article.title} - " : ""} Jiri Pospisil's blog
+    title #{current_article ? "#{current_article.title} - " : ""} Jiří Pospíšil's blog
     meta charset="utf-8"
     meta name="viewport" content="width=device-width, initial-scale=1"
 
@@ -10,21 +10,17 @@ html
     link href="/stylesheets/application.css" rel="stylesheet"
     link href="/images/favicon.ico" rel="shortcut icon" type="image/vnd.microsoft.icon"
 
-    link href="/feed.xml" rel="alternate" title="Jiri Pospisil's blog - Atom Feed" type="application/atom+xml"
+    link href="/feed.xml" rel="alternate" title="Jiří Pospíšil's blog - Atom Feed" type="application/atom+xml"
   body
     .container
       .row
-        .col-sm-3
+        .col-sm-12
           = partial "sidebar"
 
-        .col-sm-9
-          .visible-xs
-            = partial "header-xs"
+      .row
+        .col-sm-12
 
           = yield
-
-          .visible-xs
-            = partial "footer-xs"
 
           = partial "footer"
 
