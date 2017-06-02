@@ -1,21 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>Jiri Pospisil's blog</title>
+  <title>Jiří Pospíšil's blog</title>
   <id>http://jpospisil.com</id>
   <link href="http://jpospisil.com"/>
   <link href="http://jpospisil.com/feed.xml" rel="self"/>
-  <updated>2014-06-16T18:29:00+02:00</updated>
+  <updated>2017-06-02T19:16:00+02:00</updated>
   <author>
-    <name>Jiri Pospisil</name>
+    <name>Jiří Pospíšil</name>
   </author>
+  <entry>
+    <title>Understanding lock files in NPM 5</title>
+    <link rel="alternate" href="http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html"/>
+    <id>http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html</id>
+    <published>2017-06-02T19:16:00+02:00</published>
+    <updated>2017-06-02T23:42:30+02:00</updated>
+    <author>
+      <name>Jiří Pospíšil</name>
+    </author>
+    <content type="html">&lt;p&gt;The next major version of NPM brings a number of improvements over the previous
+versions in terms of speed, security, and a bunch of other &lt;a href="http://blog.npmjs.org/post/161276872334/npm5-is-now-npmlatest"&gt;nifty
+things&lt;/a&gt;. What
+stands out from the user&amp;rsquo;s perspective however is the new lock file. Actually
+lock &lt;em&gt;files&lt;/em&gt;. More on that in a second. For the uninitiated, a &lt;code&gt;package.json&lt;/code&gt;
+file describes the top level dependencies on other packages using
+&lt;a href="http://semver.org/"&gt;semver&lt;/a&gt;. Each package might in turn depend on other
+packages and so on and so forth. A lock file is a snapshot of the entire
+dependency tree and includes all packages and their resolved versions.&lt;/p&gt;
+
+&lt;p&gt;As opposed to the previous version, the lock file now includes an integrity
+field which uses &lt;a href="https://w3c.github.io/webappsec-subresource-integrity/"&gt;Subresource
+Integrity&lt;/a&gt; to verify
+that the installed package has not been tempered with or is otherwise invalid.
+It currently supports SHA-1 for packages published with an older version of NPM
+and SHA-512 which is used from now on by default.&lt;/p&gt;
+
+&lt;p&gt;</content>
+  </entry>
   <entry>
     <title>The definitive guide to Arel, the SQL manager for Ruby</title>
     <link rel="alternate" href="http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
     <id>http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
     <published>2014-06-16T18:29:00+02:00</published>
-    <updated>2015-01-01T15:03:26+01:00</updated>
+    <updated>2017-06-02T18:16:08+02:00</updated>
     <author>
-      <name>Jiri Pospisil</name>
+      <name>Jiří Pospíšil</name>
     </author>
     <content type="html">&lt;p&gt;Arel is the kind of library that many of us Rails developers use on a daily
 basis and might not even know about it. So what&amp;rsquo;s this library whose name only
@@ -39,9 +67,9 @@ query interface and all the other things we enjoy.&lt;/p&gt;
     <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
     <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
     <published>2014-03-16T17:00:00+01:00</published>
-    <updated>2015-08-21T15:52:56+02:00</updated>
+    <updated>2017-06-02T16:58:58+02:00</updated>
     <author>
-      <name>Jiri Pospisil</name>
+      <name>Jiří Pospíšil</name>
     </author>
     <content type="html">&lt;p&gt;Make and all of its flavours have been here for almost 40 years and it&amp;rsquo;s a tool
 hard to beat for many things. There are however cases when you do not need the
