@@ -69,11 +69,13 @@ advantage of that is that even if different developers use a different version
 of NPM, they should still end up with not only the same versions of
 dependencies but also with the exact same directory tree. This is different
 from other package managers such as [Yarn](https://yarnpkg.com/en/). Yarn
-describes just the dependencies between the individual packages in a [flat
-structure](https://github.com/yarnpkg/yarn/blob/46750b2bebd487fb2d2011b9c4b7646ec6e2d8a3/yarn.lock)
-and relies on the its current implementation to create the directory structure.
-This means that if the internal algorithm changes, the structure changes as
-well.
+describes just the dependencies between the individual packages in a [flatten
+format](https://github.com/yarnpkg/yarn/blob/46750b2bebd487fb2d2011b9c4b7646ec6e2d8a3/yarn.lock)
+and relies on its current implementation to create the directory structure.
+This means that if its internal algorithm changes, the structure changes as
+well. If you want to know more about the differences between Yarn and NPM 5
+when it comes to the lock file, head over to [Yarn
+determinism](https://yarnpkg.com/blog/2017/05/31/determinism/).
 
 ## Two lock files
 
