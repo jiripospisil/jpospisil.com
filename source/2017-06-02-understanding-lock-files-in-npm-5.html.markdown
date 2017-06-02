@@ -8,11 +8,11 @@ author: Jiri Pospisil
 The next major version of NPM brings a number of improvements over the previous
 versions in terms of speed, security, and a bunch of other [nifty
 things](http://blog.npmjs.org/post/161276872334/npm5-is-now-npmlatest). What
-stands our from the user's perspective however is the lock file. Actually lock
-*files*. More on that in a second. For the uninitiated, a `package.json` file
-describes the top level dependencies on other packages using
+stands out from the user's perspective however is the new lock file. Actually
+lock *files*. More on that in a second. For the uninitiated, a `package.json`
+file describes the top level dependencies on other packages using
 [semver](http://semver.org/). Each package might in turn depend on other
-packages and so on and so forth. A lock file is a snapshot the entire
+packages and so on and so forth. A lock file is a snapshot of the entire
 dependency tree and includes all packages and their resolved versions.
 
 As opposed to the previous version, the lock file now includes an integrity
@@ -167,6 +167,13 @@ the broken dependency once discovered is another topic on its own mainly
 because semver as implemented by NPM doesn't have a concept of allowing a wide
 range but also blacklisting specific versions.
 
+This of course begs the question whether it's actually worth it to add the lock
+file into the version control when working on libraries. A thing to keep in
+mind however is that the lock file contains not only dependencies but also
+*dev* dependencies. In that sense working on a library is similar to working on
+an application (see the next section) and having the exact same dev
+dependencies over time and across multiple machines is an advantage.
+
 ## When working on an application
 
 Alright, what about packages used by the end users in the terminal or bundled
@@ -190,7 +197,7 @@ locks can satisfy that. Your choice.
 ## That's a wrap
 
 And that about wraps it up for now. Feel free to reach out on Twitter if
-something's not right or with some general suggestions. If you found a typo or
-some other grammar issue, the blog post is available on
+something's not right or with some general suggestions. If you've found a typo
+or some other grammar issue, the blog post is available on
 [GitHub](https://github.com/jiripospisil/jpospisil.com). Any help is
 appreciated!
