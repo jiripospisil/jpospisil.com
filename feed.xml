@@ -13,7 +13,7 @@
     <link rel="alternate" href="http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html"/>
     <id>http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html</id>
     <published>2017-06-02T19:16:00+02:00</published>
-    <updated>2017-06-02T23:42:30+02:00</updated>
+    <updated>2017-07-29T20:57:09+02:00</updated>
     <author>
       <name>Jiří Pospíšil</name>
     </author>
@@ -30,7 +30,7 @@ dependency tree and includes all packages and their resolved versions.&lt;/p&gt;
 &lt;p&gt;As opposed to the previous version, the lock file now includes an integrity
 field which uses &lt;a href="https://w3c.github.io/webappsec-subresource-integrity/"&gt;Subresource
 Integrity&lt;/a&gt; to verify
-that the installed package has not been tempered with or is otherwise invalid.
+that the installed package has not been tampered with or is otherwise invalid.
 It currently supports SHA-1 for packages published with an older version of NPM
 and SHA-512 which is used from now on by default.&lt;/p&gt;
 
