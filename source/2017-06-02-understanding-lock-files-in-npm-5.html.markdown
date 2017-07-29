@@ -18,7 +18,7 @@ dependency tree and includes all packages and their resolved versions.
 As opposed to the previous version, the lock file now includes an integrity
 field which uses [Subresource
 Integrity](https://w3c.github.io/webappsec-subresource-integrity/) to verify
-that the installed package has not been tempered with or is otherwise invalid.
+that the installed package has not been tampered with or is otherwise invalid.
 It currently supports SHA-1 for packages published with an older version of NPM
 and SHA-512 which is used from now on by default.
 
