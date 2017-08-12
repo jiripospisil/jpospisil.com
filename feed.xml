@@ -67,14 +67,14 @@ query interface and all the other things we enjoy.&lt;/p&gt;
     <link rel="alternate" href="https://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
     <id>https://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
     <published>2014-03-16T17:00:00+01:00</published>
-    <updated>2017-08-12T15:00:13+02:00</updated>
+    <updated>2017-08-12T15:46:16+02:00</updated>
     <author>
       <name>Jiří Pospíšil</name>
     </author>
     <content type="html">&lt;p&gt;Make and all of its flavours have been here for almost 40 years and it&amp;rsquo;s a tool
 hard to beat for many things. There are however cases when you do not need the
 power of Make and are willing to trade the flexibility for something else. In
-case of &lt;a href="http://martine.github.io/ninja"&gt;Ninja&lt;/a&gt;, for its speed.&lt;/p&gt;
+case of &lt;a href="https://ninja-build.org"&gt;Ninja&lt;/a&gt;, for its speed.&lt;/p&gt;
 
 &lt;p&gt;Speed is the main motivation behind Ninja and its decisions how to write your
 build files. Ninja was written by &lt;a href="http://neugierig.org"&gt;Evan Martin&lt;/a&gt;
