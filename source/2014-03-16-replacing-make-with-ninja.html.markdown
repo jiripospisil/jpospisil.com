@@ -7,7 +7,7 @@ author: Jiri Pospisil
 Make and all of its flavours have been here for almost 40 years and it's a tool
 hard to beat for many things. There are however cases when you do not need the
 power of Make and are willing to trade the flexibility for something else. In
-case of [Ninja](http://martine.github.io/ninja), for its speed.
+case of [Ninja](https://ninja-build.org), for its speed.
 
 Speed is the main motivation behind Ninja and its decisions how to write your
 build files. Ninja was written by [Evan Martin](http://neugierig.org)
