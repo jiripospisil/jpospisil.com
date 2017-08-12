@@ -51,7 +51,7 @@ you'd probably end up with something like
 [this](https://gist.github.com/jiripospisil/5f0750989c2cefc0e257).
 
 To see a more realistic example with proper dependency tracking, I converted
-[libgit2](http://libgit2.github.com)'s
+[libgit2](https://libgit2.github.com)'s
 [Makefile.embed](https://github.com/libgit2/libgit2/blob/2b40390f226ac8ba516fdf0d893e0b5a29857dc7/Makefile.embed)
 to Ninja. The Makefile compiles libgit2 and creates a static library out of it.
 You can see the result
@@ -93,11 +93,11 @@ with open("build.ninja", "w") as buildfile:
 ```
 
 The fun part is that Ninja is already supported by some of the most popular meta
-build systems out there - [CMake](http://www.cmake.org) and
+build systems out there - [CMake](https://www.cmake.org) and
 [Gyp](https://code.google.com/p/gyp). If you have a CMake based project and
 assuming you have Ninja available in your PATH, all you need to do is to choose
 Ninja as the
-[generator](http://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators):
+[generator](https://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators):
 
 ```bash
 $ cd libgit2 && mkdir build && cd build

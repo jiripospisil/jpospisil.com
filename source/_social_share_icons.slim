@@ -1,5 +1,5 @@
 .social-share-icons
-  - url   = CGI::escape("http://jpospisil.com#{current_article.url}")
+  - url   = CGI::escape("https://jpospisil.com#{current_article.url}")
   - title = CGI::escape(current_article.title)
   - text  = "#{title} via @JiriPospisil"
 
@@ -9,5 +9,5 @@
   a href="https://plus.google.com/share?url=#{url}" target="_blank"
     i.fa.fa-google-plus-square
 
-  a href="http://www.facebook.com/sharer/sharer.php?s=100&p[url]=#{url}&p[title]=#{title}" target="_blank"
+  a href="https://www.facebook.com/sharer/sharer.php?s=100&p[url]=#{url}&p[title]=#{title}" target="_blank"
     i.fa.fa-facebook-square

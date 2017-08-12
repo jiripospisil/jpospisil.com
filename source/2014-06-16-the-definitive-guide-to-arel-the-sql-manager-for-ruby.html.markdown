@@ -31,7 +31,7 @@ calls out to it to get the final SQL before shipping it to the database of your
 choice.
 
 So how exactly Arel achieves building the queries in such a flexible way? By
-building an [AST](http://en.wikipedia.org/wiki/Abstract_syntax_tree). Arel
+building an [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree). Arel
 internally operates on AST nodes - you modify the query via a method call, Arel
 modifies or creates the appropriate node in the tree.
 
@@ -74,7 +74,7 @@ can create pretty diagrams out of it (more on that later).
 </div>
 
 So far we've seen only [ActiveRecord's query
-interface](http://guides.rubyonrails.org/active_record_querying.html), the part
+interface](https://guides.rubyonrails.org/active_record_querying.html), the part
 built on top of Arel. Let's get below the surface and start working with Arel
 directly. To play along, use the following instructions. The script will
 download the correct version of libraries and leave you inside a Pry REPL
@@ -85,9 +85,9 @@ always a good idea to inspect all 3rd party scripts before you run them.
 cd /tmp
 mkdir arel_playground && cd arel_playground
 
-wget http://jpospisil.com/arel_setup.sh
+wget https://jpospisil.com/arel_setup.sh
 # or
-curl -L -o arel_setup.sh http://jpospisil.com/arel_setup.sh
+curl -L -o arel_setup.sh https://jpospisil.com/arel_setup.sh
 
 bash ./arel_setup.sh
 ```
@@ -113,7 +113,7 @@ which are responsible for delegating the calls deeper into the system. The
 method we are interested in now is the
 [project](https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L83-85)
 method. The name comes from [relational
-algebra](http://en.wikipedia.org/wiki/Projection_(relational_algebra)) but rest
+algebra](https://en.wikipedia.org/wiki/Projection_(relational_algebra)) but rest
 assured, it's just a plain `select`.
 
 ```ruby
@@ -289,7 +289,7 @@ or better yet by rewriting the query to use the supported constructs.
 
 Arel comes with support even for slightly advanced features such as `WITH`
 statements or `WINDOW` functions. Let's try to replicate an example [7.8.1.
-SELECT in WITH](http://www.postgresql.org/docs/9.3/static/queries-with.html)
+SELECT in WITH](https://www.postgresql.org/docs/9.3/static/queries-with.html)
 from the PostgreSQL manual. The query is quite complicated, it consists of 2
 `WITH` statements and a few subqueries. Let's focus first on the `WITH`
 clauses `regional_sales` and `top_regions`.
@@ -405,7 +405,7 @@ internally represents all queries as nodes in an abstract syntax tree. The
 managers create and modify these trees. Naturally, something later has to take
 the resulting tree and process it to the final output. Arel uses various kinds
 of visitors to accomplish this (see the [Visitor
-pattern](http://en.wikipedia.org/wiki/Visitor_pattern)).
+pattern](https://en.wikipedia.org/wiki/Visitor_pattern)).
 
 In essence, the visitor pattern abstracts away how the nodes of an AST are
 processed from the nodes themselves. The nodes stay the same, yet it's possible
