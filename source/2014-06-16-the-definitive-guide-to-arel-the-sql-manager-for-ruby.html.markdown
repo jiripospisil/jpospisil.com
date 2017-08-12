@@ -413,17 +413,15 @@ to apply different visitors and get different results. This is exactly what Arel
 needs to generate all those kinds of output formats.
 
 The Arel's implementation of the visitor pattern is interesting. It uses a
-variation called [Extrinsic
-Visitor](http://web.info.uvt.ro/~oaritoni/inginerie/Cursuri/DesignPatterns/L7/Visitor/nordberg.ps.pdf).
-The variation takes great advantage of Ruby's dynamic behavior and the
-information available at runtime. Instead of forcing the nodes to implement the
-`accept` method, the visitor calls
+variation called "extrinsic visitor". The variation takes great advantage of
+Ruby's dynamic behavior and the information available at runtime. Instead of
+forcing the nodes to implement the `accept` method, the visitor calls
 [accept](https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L4-6)
 on itself with the root node as argument. It then inspects the node to find out
 its type and
 [looks](https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L21-31)
-the appropriate visit method. To make the dispatching part faster, the code uses
-a simple [hash
+the appropriate visit method. To make the dispatching part faster, the code
+uses a simple [hash
 table](https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L10-L15)
 for caching purposes.
 
