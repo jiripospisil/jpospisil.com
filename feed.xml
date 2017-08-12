@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Jiří Pospíšil's blog</title>
-  <id>http://jpospisil.com</id>
-  <link href="http://jpospisil.com"/>
-  <link href="http://jpospisil.com/feed.xml" rel="self"/>
+  <id>https://jpospisil.com</id>
+  <link href="https://jpospisil.com"/>
+  <link href="https://jpospisil.com/feed.xml" rel="self"/>
   <updated>2017-06-02T19:16:00+02:00</updated>
   <author>
     <name>Jiří Pospíšil</name>
   </author>
   <entry>
     <title>Understanding lock files in NPM 5</title>
-    <link rel="alternate" href="http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html"/>
-    <id>http://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html</id>
+    <link rel="alternate" href="https://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html"/>
+    <id>https://jpospisil.com/2017/06/02/understanding-lock-files-in-npm-5.html</id>
     <published>2017-06-02T19:16:00+02:00</published>
     <updated>2017-07-29T20:57:09+02:00</updated>
     <author>
@@ -38,10 +38,10 @@ and SHA-512 which is used from now on by default.&lt;/p&gt;
   </entry>
   <entry>
     <title>The definitive guide to Arel, the SQL manager for Ruby</title>
-    <link rel="alternate" href="http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
-    <id>http://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
+    <link rel="alternate" href="https://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html"/>
+    <id>https://jpospisil.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</id>
     <published>2014-06-16T18:29:00+02:00</published>
-    <updated>2017-06-02T18:16:08+02:00</updated>
+    <updated>2017-08-12T15:15:16+02:00</updated>
     <author>
       <name>Jiří Pospíšil</name>
     </author>
@@ -64,10 +64,10 @@ query interface and all the other things we enjoy.&lt;/p&gt;
   </entry>
   <entry>
     <title>Replacing Make with Ninja</title>
-    <link rel="alternate" href="http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
-    <id>http://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
+    <link rel="alternate" href="https://jpospisil.com/2014/03/16/replacing-make-with-ninja.html"/>
+    <id>https://jpospisil.com/2014/03/16/replacing-make-with-ninja.html</id>
     <published>2014-03-16T17:00:00+01:00</published>
-    <updated>2017-06-02T16:58:58+02:00</updated>
+    <updated>2017-08-12T15:00:13+02:00</updated>
     <author>
       <name>Jiří Pospíšil</name>
     </author>
