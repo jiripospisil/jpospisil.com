@@ -3,11 +3,11 @@
   - title = CGI::escape(current_article.title)
   - text  = "#{title} via @JiriPospisil"
 
-  a href="https://twitter.com/share?url=#{url}&text=#{text}" target="_blank"
+  a href="https://twitter.com/share?url=#{url}&text=#{text}" target="_blank" rel="noopener"
     i.fa.fa-twitter-square
 
-  a href="https://plus.google.com/share?url=#{url}" target="_blank"
+  a href="https://plus.google.com/share?url=#{url}" target="_blank" rel="noopener"
     i.fa.fa-google-plus-square
 
-  a href="https://www.facebook.com/sharer/sharer.php?s=100&p[url]=#{url}&p[title]=#{title}" target="_blank"
+  a href="https://www.facebook.com/sharer/sharer.php?s=100&p[url]=#{url}&p[title]=#{title}" target="_blank" rel="noopener"
     i.fa.fa-facebook-square
