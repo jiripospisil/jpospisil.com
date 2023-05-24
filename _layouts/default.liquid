@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {% include "metas.liquid" title: "Jiri Pospisil", css: "default" %}
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="sidebar">
+                <a href="/"><img class="logo" height="100px" src="/images/logo.jpg"></a>
+                <p class="name"><a href="/">Jiri Pospisil</a></p>
+                <p class="bio">
+                    Certainly! Here's a brief bio about a random programmer:
+                    <br><br> 
+                    [name] is a dynamic and innovative programmer with a keen eye for detail and a passion for pushing the boundaries of technology. 
+                </p>
+                <div class="icons">
+                    <a href="https://twitter.com/jiripospisil"><img src="/images/tw.svg" width="20px"></a>
+                </div>
+            </div>
+
+            <div class="posts">
+              {{ page.content }}
+            </div>
+        </div>
+  </body>
+</html>

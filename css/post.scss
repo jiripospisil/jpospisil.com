@@ -1,0 +1,36 @@
+@import "base";
+
+.container {
+  padding-left: 20px;
+  padding-right: 20px;
+  max-width: 690px;
+  margin: 50px auto;
+  display: grid;
+}
+
+.logo {
+  display: block;
+  border-radius: 104px;
+  border: 1px solid gray;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.published {
+  margin-left: 20px;
+}
+
+pre {
+  white-space2: pre-wrap;
+  overflow-x: auto;
+  padding: 10px;
+}

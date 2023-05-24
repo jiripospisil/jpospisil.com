@@ -1,0 +1,56 @@
+@import "base";
+
+.sidebar {
+  grid-area: sidebar;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.posts {
+  grid-area: posts;
+}
+
+.container {
+  padding-left: 20px;
+  padding-right: 20px;
+  max-width: 1000px;
+  margin: 50px auto;
+  display: grid;
+  gap: 50px;
+  grid-template-columns: 260px 1fr;
+  grid-template-areas:
+    "sidebar posts"
+}
+
+@media (max-width: 800px) {
+  .container {
+    gap: 20px;
+    grid-template-columns: auto;
+    grid-template-areas: 
+      "sidebar" 
+      "posts";
+  }
+}
+
+.logo {
+  display: block;
+  width: 100px;
+  border-radius: 104px;
+  border: 1px solid gray;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.name a {
+  text-decoration: none;
+  color: #000;
+}
+
+.icons {
+  margin-top: 20px;
+}

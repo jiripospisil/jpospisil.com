@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {% capture title %}
+            {{ page.title }} - Jiri Pospisil
+        {% endcapture %}
+        {% include "metas.liquid" title: title, css: "post" %}
+    </head>
+
+    <body>
+        <div class="container">
+            <h1><a href="/{{ page.permalink }}">{{ page.title }}</a></h1>
+
+            <div class="topbar">
+                <a href="/"><img class="logo" height="30px" src="/images/logo.jpg"></a>
+                <div class="name"><a href="/">Jiri Pospisil</a></div>
+    			<span class="published">Published {{ page.published_date | date: "%b %d, %Y" }}</span>
+            </div>
+
+            {{ page.content }}
+
+            <p class="back"><a href="/">Go back to the front page</a></p>
+        </div>
+  </body>
+</html>
