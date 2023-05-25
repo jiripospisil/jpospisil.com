@@ -27,9 +27,10 @@ it’s just so damn convenient. Sure, I could use a *real* programming language 
 it gets annoying pretty quickly when the script is really just driving external
 commands.
 
-Let's try using [Nushell]. I will let you peruse their website on your own but the key take
-aways are that Nushell is a modern alternative that tries to avoid many of the
-pitfalls of Bash (and other shells) and to provide a sane scripting environment.
+Let's try using [Nushell]. I will let you peruse their website on your own but
+the key takeaways are that Nushell is a modern alternative that tries to avoid
+many of the pitfalls of Bash (and other shells) and to provide a sane scripting
+environment.
 
 [Nushell]: https://www.nushell.sh
 
@@ -39,7 +40,7 @@ pitfalls of Bash (and other shells) and to provide a sane scripting environment.
 
 You will also notice that in Nushell you work with structured data. Each of the
 commands understands what’s being passed in. That's probably a bit controversial
-among UNIX enthusiats who prefer using plain text but honestly I don't really
+among UNIX enthusiasts who prefer using plain text but honestly I don't really
 mind. Reminds me of [PowerShell].
 
 [PowerShell]: https://github.com/PowerShell/PowerShell
@@ -130,7 +131,7 @@ def main [
 10
 ```
 
-Notice that the flag doesn’t have a type. In this case, Nushell takes the
+Notice that the flag doesn't have a type. In this case, Nushell takes the
 presence or absence of the flag as the bool value. If we had specified an
 explicit bool type, we would have to pass in a value on the command line e.g.
 “-m true”.
@@ -154,7 +155,7 @@ Parameters:
   ...numbers <int>: Numbers to work on 
 ```
 
-The sub-command "mul” actually doesn’t exist in the [standard library] but we can add it a basic version of it.
+The sub-command "mul” actually doesn't exist in the [standard library] but we can add it a basic version of it.
 
 [standard library]: https://www.nushell.sh/commands
 
@@ -165,7 +166,7 @@ def "math mul" [] {
 ```
 
 Okay, so it’s very easy to accept command line arguments and flags. What about
-running some external programs? After all, all we’ve done so far is stay within
+running some external programs? After all, all we've done so far is stay within
 the Nushell’s runtime.
 
 Let’s write a script which will return two of the latest commits for a given
@@ -201,7 +202,7 @@ The meat of the script is not very different from what we would write in Bash.
 </div>
 
 
-What happens if we pass in a project name which doesn’t exist?
+What happens if we pass in a project name which doesn't exist?
 
 ```
 ./git.nu nushell/nushell2
@@ -216,7 +217,7 @@ of server errors and to not output anything.
 curl --fail -s $url | jq ...
 ```
 
-Alright, now curl returns exit code 22 on any HTTP error and doesn’t pass any
+Alright, now curl returns exit code 22 on any HTTP error and doesn't pass any
 data forward which in turn makes jq output nothing.
 
 ```
@@ -279,7 +280,7 @@ cat: missing: No such file or directory
 Hm!
 ```
 
-The cat command fails, the wc command succeeds but doesn’t receive any data. And
+The cat command fails, the wc command succeeds but doesn't receive any data. And
 crucially, the next line is still executed. The default behavior in Bash is the
 same but we can change it.
 
@@ -333,7 +334,7 @@ well.
 Let’s get back to our little Git example. The script uses external commands to
 do the heavy lifting of interacting with the network and parsing of the result.
 While it works and is probably one of the ways one would do it in Bash, it
-certainly isn’t the “go-to” solution in Nushell.
+certainly isn't the “go-to” solution in Nushell.
 
 Nushell has a fairly rich (and ever expanding) [standard library] for dealing with
 the most common problems. Let’s try to rewrite the example using just Nushell’s
@@ -343,7 +344,7 @@ built-in [Network] commands.
 [Network]: https://www.nushell.sh/commands/categories/network.html
 
 Instead of using curl, we can use the built-in [http get] command. This of course
-doesn’t support all of the curl’s hundreds of options and features, but our use
+doesn't support all of the curl’s hundreds of options and features, but our use
 case is really trivial.
 
 [http get]: https://www.nushell.sh/commands/docs/http_get.html
@@ -376,7 +377,7 @@ This code also handles errors better. Those pipes run entirely within the
 runtime using the built-in commands which means we don’t have to worry about
 exit codes and command termination.
 
-If we didn’t want to provide a different message based on the HTTP status, we
+If we didn't want to provide a different message based on the HTTP status, we
 could take advantage of [try/catch] to simply the code even further. It’s worth
 noting that this mechanism seems to work as expected for built-in commands only.
 
@@ -423,7 +424,7 @@ error handling that’s even pointing to the problem and prints context. Nice.
   <img src="/posts/nushell/4.png">
 </div>
 
-Alright, that’s a long enough introduction. Going forward, I think I’ve
+Alright, that’s a long enough introduction. Going forward, I think I've
 convinced myself to try creating scripts in Nushell first and only fallback to
 alternatives in case of trouble. Let’s mention a few disadvantages to close off.
 
@@ -437,7 +438,7 @@ potentially breaking your existing scripts. You might want to wait for things to
 settle down.
 
 Third, there’s a pretty good chance that everybody has Bash installed on their
-system (let’s pretend Windows doesn’t exist). Not so much with Nushell. It has
+system (let’s pretend Windows doesn't exist). Not so much with Nushell. It has
 made its way to almost every distribution’s package manager out there ([I use
 Arch btw]) but depending on your circumstances you might be out of luck.
 
