@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>cobalt blog</title><link>http://example.com</link><description>Blog Posts Go Here</description><item><title>Understanding lock files in NPM 5</title><link>http://example.com/2017/06/02/understanding-lock-files-in-npm-5.html</link><description><![CDATA[<p>The next major version of NPM brings a number of improvements over the previous
+versions in terms of speed, security, and a bunch of other <a href="https://blog.npmjs.org/post/161276872334/npm5-is-now-npmlatest">nifty
+things</a>. What
+stands out from the user's perspective however is the new lock file. Actually
+lock <em>files</em>. More on that in a second. For the uninitiated, a <code>package.json</code>
+file describes the top level dependencies on other packages using
+<a href="https://semver.org/">semver</a>. </p>
+]]></description><guid>http://example.com/2017/06/02/understanding-lock-files-in-npm-5.html</guid><pubDate>Fri, 02 Jun 2017 00:00:00 +0000</pubDate></item><item><title>The definitive guide to Arel, the SQL manager for Ruby</title><link>http://example.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</link><description><![CDATA[<p>Arel is the kind of library that many of us Rails developers use on a daily
+basis and might not even know about it. So what's this library whose name only
+pops up when everything else fails all about?</p>
+]]></description><guid>http://example.com/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html</guid><pubDate>Mon, 16 Jun 2014 00:00:00 +0000</pubDate></item><item><title>Replacing Make with Ninja</title><link>http://example.com/2014/03/16/replacing-make-with-ninja.html</link><description><![CDATA[<p>Make and all of its flavours have been here for almost 40 years and it's a tool
+hard to beat for many things. There are however cases when you do not need the
+power of Make and are willing to trade the flexibility for something else. In
+case of <a href="https://ninja-build.org">Ninja</a>, for its speed.</p>
+]]></description><guid>http://example.com/2014/03/16/replacing-make-with-ninja.html</guid><pubDate>Sun, 16 Mar 2014 00:00:00 +0000</pubDate></item></channel></rss>

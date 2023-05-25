@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <meta charset="utf-8">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Regular.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Light.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Bold.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-SemiBold.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/css/default.css" as="style">
+<link rel="preload" crossorigin="anonymous" href="/css/post.css" as="style">
+
+<link rel="stylesheet" crossorigin="anonymous" href="/css/post.css">
+<link rel="icon" crossorigin="anonymous" href="/images/favicon.png">
+<title>
+            Replacing Make with Ninja - Jiri Pospisil
+        </title>
+
+    </head>
+
+    <body>
+        <div class="container">
+            <h1><a href="/2014/03/16/replacing-make-with-ninja.html">Replacing Make with Ninja</a></h1>
+
+            <div class="topbar">
+                <a href="/"><img class="logo" height="30px" src="/images/logo.jpg"></a>
+                <div class="name"><a href="/">Jiri Pospisil</a></div>
+    			<span class="published">Published Mar 16, 2014</span>
+            </div>
+
+            <p>Make and all of its flavours have been here for almost 40 years and it's a tool
+hard to beat for many things. There are however cases when you do not need the
+power of Make and are willing to trade the flexibility for something else. In
+case of <a href="https://ninja-build.org">Ninja</a>, for its speed.</p>
+<p>Speed is the main motivation behind Ninja and its decisions how to write your
+build files. Ninja was written by <a href="https://neugierig.org">Evan Martin</a>
+specifically to fight slow build cycles while working on Google Chrome. </p>
+<p>The bigger the project, the longer it takes to figure out what files need to be
+recompiled or if any action is required at all. As a result of numerous
+optimizations, Ninja is much faster when compared to alternatives.  Ninja's
+secret is to do the least amount of work possible and let other more high level
+tools to handle the rest upfront. </p>
+<p>Let's see an example of a simple script featuring all of the abstractions Ninja
+provides:</p>
+<pre><code class="language-bash"># build.ninja
+cc     = clang
+cflags = -Weverything
+
+rule compile
+  command = $cc $cflags -c $in -o $out
+
+rule link
+  command = $cc $in -o $out
+
+build hello.o: compile hello.c
+build hello: link hello.o
+
+default hello
+</code></pre>
+<p>Putting aside the fact that there's no point in writing something like this for
+a single file, let's see what's going on there. First, we define 2 variables and
+later refer to them using the <code>$</code> sign. Second, there are rules. Rules are
+essentially functions that call an external command to perform an action.
+Finally, build statements are used to define dependencies between input and
+output files. If you were to write the same with Make using its conventions,
+you'd probably end up with something like
+<a href="https://gist.github.com/jiripospisil/5f0750989c2cefc0e257">this</a>.</p>
+<p>To see a more realistic example with proper dependency tracking, I converted
+<a href="https://libgit2.github.com">libgit2</a>'s
+<a href="https://github.com/libgit2/libgit2/blob/2b40390f226ac8ba516fdf0d893e0b5a29857dc7/Makefile.embed">Makefile.embed</a>
+to Ninja. The Makefile compiles libgit2 and creates a static library out of it.
+You can see the result
+<a href="https://gist.github.com/jiripospisil/1d099dda373280206aee">here</a>.</p>
+<p>You've probably noticed a few things. First, Ninja scripts are explicit. You
+cannot use any fancy substitution/wildcard functions (or any other control
+structures for that matter). As a result, the script is not only much longer but
+it also cannot handle any conditions making it unsuitable to any multi
+platform/compiler development. And this is by design.</p>
+<p>I've mentioned that Ninja is meant to be used with a higher level tool
+(generator). One of the reasons for doing that is to overcome the said issues.
+In practice this means that you do not care about the absence of conditions or
+any other capabilities because the generator handles it for you simply by
+generating a different set of build scripts.</p>
+<p>Ninja comes with a simple <a href="https://github.com/martine/ninja/blob/84986/misc/ninja_syntax.py">Python based
+generator</a>.
+The generator is straightforward, you call the methods and it outputs the
+corresponding Ninja syntax to a file. Since it's just Python, you can make all
+of the platform and compiler decisions here. In fact, this is the way Ninja
+itself is <a href="https://github.com/martine/ninja/blob/84986/configure.py">built</a>:</p>
+<pre><code class="language-python">from ninja_syntax import Writer
+
+with open(&quot;build.ninja&quot;, &quot;w&quot;) as buildfile:
+    n = Writer(buildfile)
+
+    if platform.is_msvc():
+        n.rule(&quot;link&quot;,
+                command=&quot;$cxx $in $libs /nologo /link $ldflags /out:$out&quot;,
+                description=&quot;LINK $out&quot;)
+    else:
+        n.rule(&quot;link&quot;,
+                command=&quot;$cxx $ldflags -o $out $in $libs&quot;,
+                description=&quot;LINK $out&quot;)
+</code></pre>
+<p>The fun part is that Ninja is already supported by some of the most popular meta
+build systems out there - <a href="https://www.cmake.org">CMake</a> and
+<a href="https://code.google.com/p/gyp">Gyp</a>. If you have a CMake based project and
+assuming you have Ninja available in your PATH, all you need to do is to choose
+Ninja as the
+<a href="https://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators">generator</a>:</p>
+<pre><code class="language-bash">$ cd libgit2 &amp;&amp; mkdir build &amp;&amp; cd build
+$ cmake -GNinja ..
+$ ninja
+</code></pre>
+<p>With this change, CMake generates a bunch of Ninja build files and Ninja builds
+the project. Notice that there's no need to specify the number of parallel jobs
+(<code>-j [jobs]</code>) because Ninja automatically chooses the value based on the number
+of cores available. </p>
+<p>The compilation speed is not very different although it might be a bit faster
+due to Ninja consuming very little CPU while driving the build process. What is
+however very significant are the time savings when working with the source code
+and invoking the build process again. A non-scientific benchmark performed on my laptop
+shows that Ninja is indeed much faster:</p>
+<table class="table table-hover">
+  <thead>
+    <th></th>
+    <th></th>
+    <th>No file changes</th>
+    <th>1 file change</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td></td>
+      <td><strong>Make</strong></td>
+      <td>0.670s</td>
+      <td>2.404s</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><strong>Ninja</strong></td>
+      <td>0.041s</td>
+      <td>0.761s</td>
+    </tr>
+  </tbody>
+</table>
+<p>These savings will become even more significant as your project grows. I
+encourage you to try <a href="https://github.com/martine/ninja">Ninja</a> and compare the
+build cycle times with Make. You will very likely see a similar difference. If
+you want to learn more about Ninja, here's a few links:</p>
+<p><a href="https://martine.github.io/ninja">Ninja, a small build system with a focus on speed</a> (homepage)</p>
+<p><a href="https://www.aosabook.org/en/posa/ninja.html">The Performance of Open Source Software | Ninja</a></p>
+<p><a href="https://neugierig.org/software/chromium/notes/2011/02/ninja.html">Ninja, a new build system</a></p>
+
+
+            <p class="back"><a href="/">Go back to the front page</a></p>
+        </div>
+  </body>
+</html>

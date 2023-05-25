@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <meta charset="utf-8">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Regular.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Light.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Bold.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-SemiBold.woff2?v=3.19" as="font">
+<link rel="preload" crossorigin="anonymous" href="/css/default.css" as="style">
+<link rel="preload" crossorigin="anonymous" href="/css/post.css" as="style">
+
+<link rel="stylesheet" crossorigin="anonymous" href="/css/post.css">
+<link rel="icon" crossorigin="anonymous" href="/images/favicon.png">
+<title>
+            The definitive guide to Arel, the SQL manager for Ruby - Jiri Pospisil
+        </title>
+
+    </head>
+
+    <body>
+        <div class="container">
+            <h1><a href="/2014/06/16/the-definitive-guide-to-arel-the-sql-manager-for-ruby.html">The definitive guide to Arel, the SQL manager for Ruby</a></h1>
+
+            <div class="topbar">
+                <a href="/"><img class="logo" height="30px" src="/images/logo.jpg"></a>
+                <div class="name"><a href="/">Jiri Pospisil</a></div>
+    			<span class="published">Published Jun 16, 2014</span>
+            </div>
+
+            <p>Arel is the kind of library that many of us Rails developers use on a daily
+basis and might not even know about it. So what's this library whose name only
+pops up when everything else fails all about?</p>
+<p>It's all about providing frameworks with a way of building and representing SQL
+queries. It's not the kind of library you would <em>typically</em> want to use directly
+(although you could as shown in a minute). Arel is meant to be the basic
+building block upon which frameworks build their own APIs that are more suitable
+for the end user.</p>
+<p>One of those frameworks is ActiveRecord (AR), the default ORM in Rails.
+ActiveRecord's responsibility is to provide a connection to the database, a
+convenient way to specify relationships between your models, provide a nice
+query interface and all the other things we enjoy.</p>
+<pre><code class="language-ruby"># ActiveRecord
+User.first.comments.where(created_at: 2.days.ago..Time.current).limit(5)
+</code></pre>
+<p>Behind the scenes, ActiveRecord uses Arel to build the queries and ultimately
+calls out to it to get the final SQL before shipping it to the database of your
+choice.</p>
+<p>So how exactly Arel achieves building the queries in such a flexible way? By
+building an <a href="https://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a>. Arel
+internally operates on AST nodes - you modify the query via a method call, Arel
+modifies or creates the appropriate node in the tree.</p>
+<div class="image">
+<img src="/posts/arel/ast.png" width="347px" height="159px" title="An select query represented via AST" />
+</div>
+<p>This kind of representation holds two important properties. First,
+composability. By being composable you gain the power to build the query
+iteratively, piece by piece, and even combine several queries together.  Many
+parts of the API (and consequently AR's API) would be impossible or at least
+very difficult handle without this property.</p>
+<pre><code class="language-ruby"># ActiveRecord
+
+bob = User.where(email: &quot;bob@test.com&quot;).where(active: true)
+# =&gt; SELECT &quot;users&quot;.* FROM &quot;users&quot; WHERE &quot;users&quot;.&quot;email&quot; = &#39;bob@test.com&#39; AND &quot;users&quot;.&quot;active&quot; = &#39;t&#39;
+
+details = User.select(:id, :email, :first_name).order(id: :desc)
+# =&gt; SELECT &quot;users&quot;.&quot;id&quot;, &quot;users&quot;.&quot;email&quot;, &quot;users&quot;.&quot;first_name&quot; FROM &quot;users&quot; ORDER BY &quot;users&quot;.&quot;id&quot; DESC
+
+bob.merge(details).first
+# =&gt; SELECT &quot;users&quot;.&quot;id&quot;, &quot;users&quot;.&quot;email&quot;, &quot;users&quot;.&quot;first_name&quot; FROM &quot;users&quot;
+#    WHERE &quot;users&quot;.&quot;email&quot; = &#39;bob@test.com&#39; AND &quot;users&quot;.&quot;active&quot; = &#39;t&#39;
+#    ORDER BY &quot;users&quot;.&quot;id&quot; DESC LIMIT 1
+</code></pre>
+<p>While a contrived example, it is sufficient to show that it'd be very difficult
+to work with these queries without some sort of abstract representation.</p>
+<p>The other equally important property is the completely obliviousness to the
+outside world. Arel doesn't care what's going to happen with the result. It
+might end up converted into a SQL query or into an entirely different format. In
+fact, Arel is able to convert the query into the Graphviz's dot format and you
+can create pretty diagrams out of it (more on that later).</p>
+<div class="image">
+<img src="/posts/arel/arel_to_formats.png" width="356px" height="96px" title="Arel converted to other formats" />
+</div>
+<p>So far we've seen only <a href="https://guides.rubyonrails.org/active_record_querying.html">ActiveRecord's query
+interface</a>, the part
+built on top of Arel. Let's get below the surface and start working with Arel
+directly. To play along, use the following instructions. The script will
+download the correct version of libraries and leave you inside a Pry REPL
+instance (run <code>bundle console</code> if you've left the REPL and want to come back). It's
+always a good idea to inspect all 3rd party scripts before you run them.</p>
+<pre><code class="language-bash">cd /tmp
+mkdir arel_playground &amp;&amp; cd arel_playground
+
+wget https://jpospisil.com/posts/arel/arel_setup.sh
+# or
+curl -L -o arel_setup.sh https://jpospisil.com/arel_setup.sh
+
+bash ./arel_setup.sh
+</code></pre>
+<p>To stay current for the foreseeable future, the text is based on soon-to-be
+released version of Arel. The text also contains a lot of links to the actual
+Arel's source code, you are strongly encouraged to look around the file beyond
+the highlighted area to see all of the options!</p>
+<h2>Diving in with SelectManager</h2>
+<p>Let's start by building a select query that will give us all users. First, we
+need to create an object representing the table itself. Notice that you can name
+the table whatever you want, it doesn't have to exist anywhere.</p>
+<pre><code class="language-ruby">users = Arel::Table.new(:users)
+</code></pre>
+<p><code>Arel::Table</code> itself doesn't do much but it has <a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L45-L97">a lot of handy
+methods</a>
+which are responsible for delegating the calls deeper into the system. The
+method we are interested in now is the
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L83-85">project</a>
+method. The name comes from <a href="https://en.wikipedia.org/wiki/Projection_(relational_algebra)">relational
+algebra</a> but rest
+assured, it's just a plain <code>select</code>.</p>
+<pre><code class="language-ruby">select_manager = users.project(Arel.star)
+</code></pre>
+<p>Notice the use of
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel.rb#L30-32">Arel.star</a>, a
+convenience method for the <code>*</code> character. What we got back is an instance of
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb">Arel::SelectManager</a>,
+the object responsible for assembling of the select query. Now we should be able
+to get the resulting SQL from <code>select_manager</code>.</p>
+<pre><code class="language-ruby">select_manager.to_sql
+# =&gt; NoMethodError: undefined method `connection&#39; for nil:NilClass
+</code></pre>
+<p>And it didn't work. If you think about it, the failure kind of makes sense
+(although the error should be handled more gracefully) because we didn't
+specified any database details and Arel has no way of knowing for what database
+we want the query generated. Databases may differ in syntax, capabilities and
+even in character escaping. Let's get ourselves an ActiveRecord database
+connection and try again.</p>
+<pre><code class="language-ruby">ActiveRecord::Base.establish_connection(adapter: &quot;sqlite3&quot;, database: &quot;:memory:&quot;)
+
+users          = Arel::Table.new(:users, ActiveRecord::Base)
+select_manager = users.project(Arel.star)
+
+select_manager.to_sql
+# =&gt; SELECT * FROM &quot;users&quot;
+</code></pre>
+<p>Notice we passed <code>ActiveRecord::Base</code> to the <code>Arel::Table</code>'s constructor. We
+could have also set it globally via <code>Arel::Table.engine=</code>. With all that in
+place, we finally have our precious SQL query.</p>
+<p>The interesting thing is the collaboration between Arel and ActiveRecord. Arel
+is technically independent from ActiveRecord but it needs to get the database
+details from somewhere and currently it uses ActiveRecord. More specifically,
+Arel requires ActiveRecord's APIs. There's even a fake ActiveRecord
+implementation,
+<a href="https://github.com/rails/arel/blob/f50de54/test/support/fake_record.rb">FakeRecord</a>,
+that is <a href="https://github.com/rails/arel/blob/f50de54/test/helper.rb#L6-L7">used</a> to
+run the Arel's tests. In the past you needed a running MySQL server.</p>
+<h2>Getting picky</h2>
+<p>Querying for all users' details is nice but let's be more specific. Say we
+want to select only the users' ids and names. The key abstraction Arel provides
+for working with attributes (column names) is
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/attributes/attribute.rb">Arel::Attribute</a>.</p>
+<p><code>Arel::Attribute</code> represents a single column of an arbitrary name. The easiest way
+to get a hold of an <code>Arel::Attribute</code> for a table is to use the
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/table.rb#L99-101">Arel::Table#[]</a>
+method. We can use the result right away in the <code>project</code> method.</p>
+<pre><code class="language-ruby">select_manager = users.project(users[:id], users[:name])
+select_manager.to_sql
+# =&gt; SELECT &quot;users&quot;.&quot;id&quot;, &quot;users&quot;.&quot;name&quot; FROM &quot;users
+</code></pre>
+<p>As you've probably noticed, the class gets included with a bunch of modules
+which add a lot of functionality. The first module,
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/expressions.rb">Arel::Expressions</a>,
+adds the common aggregate functions.</p>
+<pre><code class="language-ruby">select_manager = users.project(users[:comments_count].average)
+select_manager.to_sql
+# =&gt; SELECT AVG(&quot;users&quot;.&quot;comments_count&quot;) AS avg_id FROM &quot;users&quot;
+</code></pre>
+<p>The results of these aggregate functions are kept in variables with hardcoded
+names (<code>avg_id</code> in this case). Fortunately,
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/alias_predication.rb">Arel::AliasPredication</a> comes to our rescue.</p>
+<pre><code class="language-ruby">select_manager = users.project(users[:vip].as(&quot;status&quot;), users[:vip].count.as(&quot;count&quot;)).group(&quot;vip&quot;)
+select_manager.to_sql
+# =&gt; SELECT &quot;users&quot;.&quot;vip&quot; AS status, COUNT(&quot;users&quot;.&quot;vip&quot;) AS count FROM &quot;users&quot;  GROUP BY vip
+</code></pre>
+<p>The <a href="https://github.com/rails/arel/blob/f50de54/lib/arel/math.rb">Arel::Math</a>
+module is pretty neat. It implements the common math operators so that we can
+use them directly on the attributes as if we're working with the values.</p>
+<pre><code class="language-ruby">select_manager = users.project((users[:stared_comments_count] / users[:comments_count]).as(&quot;ratio&quot;))
+select_manager.to_sql
+# =&gt; SELECT &quot;users&quot;.&quot;stared_comments_count&quot; / &quot;users&quot;.&quot;comments_count&quot; AS ratio FROM &quot;users&quot;
+</code></pre>
+<h2>Extending our index finger</h2>
+<p>Select queries which return data from the whole table are quite rare, usually
+you want to have more fine grained control. Let's see how Arel handles these
+cases. The starting point is again
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/attributes/attribute.rb">Arel::Attribute</a>.
+More specifically, it's one of its included modules,
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/predications.rb">Arel::Predications</a>.
+By looking at the code you can see a lot of handy methods, many of which do not
+have their equivalent in ActiveRecord' APIs.</p>
+<pre><code class="language-ruby">select_manager = users.project(Arel.star).where(users[:id].eq(23).or(users[:id].eq(42)))
+select_manager = users.project(Arel.star).where(users[:id].eq_any([23, 42]))
+select_manager.to_sql
+# =&gt; SELECT * FROM &quot;users&quot;  WHERE (&quot;users&quot;.&quot;id&quot; = 23 OR &quot;users&quot;.&quot;id&quot; = 42)
+</code></pre>
+<p>For more complicated queries, it's usually best to the build the parts
+individually and combine them together at the end.</p>
+<pre><code class="language-ruby">admins_vips    = users[:admin].eq(true).or(users[:vip].eq(true))
+with_karma     = users[:karma].gteq(5000).and(users[:hellbanned].eq(false))
+
+select_manager = users.project(users[:id]).where(admins_vips.or(with_karma)).order(users[:id].desc)
+select_manager.to_sql
+# =&gt; SELECT COUNT(&quot;users&quot;.&quot;id&quot;) FROM &quot;users&quot; WHERE ((&quot;users&quot;.&quot;admin&quot; = &#39;t&#39; OR &quot;users&quot;.&quot;vip&quot; = &#39;t&#39;)
+#      OR &quot;users&quot;.&quot;karma&quot; &gt;= 5000 AND &quot;users&quot;.&quot;hellbanned&quot; = &#39;f&#39;)
+#    ORDER BY &quot;users&quot;.&quot;id&quot; DESC
+</code></pre>
+<h2>The more the merrier</h2>
+<p>Next, let's take a look at join statements. In line with the previously shown
+API, Arel <a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb#L104-119">exposes
+joins</a>
+directly from <code>Arel::SelectManager</code>.  As expected, Arel supports the usual
+<code>INNER JOIN</code>, and <code>LEFT</code>, <code>RIGHT</code>, <code>FULL</code> <code>OUTER JOIN</code> kinds.</p>
+<pre><code class="language-ruby">comments = Arel::Table.new(:comments, ActiveRecord::Base)
+
+select_manager = users.project(Arel.star).join(comments).on(users[:id].eq(comments[:user_id]))
+select_manager.to_sql
+# =&gt; SELECT * FROM &quot;users&quot; INNER JOIN &quot;comments&quot; ON &quot;users&quot;.&quot;id&quot; = &quot;comments&quot;.&quot;user_id&quot;
+</code></pre>
+<p>To create the remaining kinds of joins, we need to explicitly pass a second
+argument to the <code>join</code> method.</p>
+<pre><code class="language-ruby">select_manager = users.project(Arel.star).join(comments, Arel::Nodes::OuterJoin).
+  on(users[:id].eq(comments[:user_id])).
+  having(comments[:id].count.lteq(16)).
+  take(15)
+
+select_manager.to_sql
+# =&gt; SELECT * FROM &quot;users&quot; LEFT OUTER JOIN &quot;comments&quot; ON &quot;users&quot;.&quot;id&quot; = &quot;comments&quot;.&quot;user_id&quot;
+#    HAVING COUNT(&quot;comments&quot;.&quot;id&quot;) &lt;= 16 LIMIT 15
+</code></pre>
+<p>Since the need for <code>OuterJoin</code> is very common, there's a shortcut called
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/select_manager.rb#L117-119">outer_join</a>, which internally calls the <code>join</code> method with the
+<code>Arel::Nodes::OuterJoin</code> argument for us. To get the remaining kinds of joins,
+there are <code>Arel::Nodes::FullOuterJoin</code> and <code>Arel::Nodes::RightOuterJoin</code> nodes
+available.</p>
+<p>The rarely used <code>CROSS JOIN</code> kind is not directly supported. What's also not
+supported out of the box is the <code>USING</code> clause but as with the previous case, we
+can get around that by resorting to creating <code>Arel::Nodes::SqlLiteral</code> manually
+or better yet by rewriting the query to use the supported constructs.</p>
+<h2>There's always more</h2>
+<p>Arel comes with support even for slightly advanced features such as <code>WITH</code>
+statements or <code>WINDOW</code> functions. Let's try to replicate an example <a href="https://www.postgresql.org/docs/9.3/static/queries-with.html">7.8.1.
+SELECT in WITH</a>
+from the PostgreSQL manual. The query is quite complicated, it consists of 2
+<code>WITH</code> statements and a few subqueries. Let's focus first on the <code>WITH</code>
+clauses <code>regional_sales</code> and <code>top_regions</code>.</p>
+<pre><code class="language-ruby">orders          = Arel::Table.new(:orders, ActiveRecord::Base)
+reg_sales       = Arel::Table.new(:regional_sales, ActiveRecord::Base)
+top_regions     = Arel::Table.new(:top_regions, ActiveRecord::Base)
+
+reg_sales_query = orders.project(orders[:region], orders[:amount].sum.as(&quot;total_sales&quot;)).
+                    group(orders[:region])
+reg_sales_as    = Arel::Nodes::As.new(reg_sales, reg_sales_query)
+</code></pre>
+<p>Nothing we haven't seen before. The only exception is the explicit instantiation
+of <code>Arel::Nodes::As</code>. There doesn't seem to be a way around it as you cannot
+create an alias via the usual <code>as</code> method.</p>
+<pre><code class="language-ruby">top_regions_subquery = reg_sales.project(Arel.sql(&quot;SUM(total_sales) / 10&quot;))
+top_regions_query    = reg_sales.project(reg_sales[:region]).
+                        where(reg_sales[:total_sales].gt(top_regions_subquery))
+top_regions_as       = Arel::Nodes::As.new(top_regions, top_regions_query)
+</code></pre>
+<p>The use of
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel.rb#L26-L28">Arel.sql</a> is
+not ideal, however, as with the previous part, there is not a way to use math
+operations on the result of the <code>sum</code> call.</p>
+<pre><code class="language-ruby">attributes = [orders[:region], orders[:product], orders[:quantity].as(&quot;product_units&quot;),
+               orders[:amount].as(&quot;product_sales&quot;)]
+
+res = orders.project(*attributes).where(orders[:region].in(top_regions.project(top_regions[:region]))).
+        with([reg_sales_as, top_regions_as]).group(orders[:region], orders[:product])
+
+res.to_sql
+</code></pre>
+<p>With all of that in place, we have our final query. If we look at the parts
+individually, they are pretty simple. Overall, however, the code is longer than
+a pure SQL solution. The fact doesn't matter when using Arel pragmatically but
+if composed by hand, one has to always consider whether it's actually worth the
+effort.</p>
+<h2>SelectManager is not the only one</h2>
+<p>So far all we've been doing was writing select queries via <code>SelectManager</code>, but
+Arel of course supports the other operations as well. Let's quickly take a look
+at deleting. There are two ways you can create a delete query. The first way is
+to explicitly instantiate
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/delete_manager.rb">Arel::DeleteManager</a>.</p>
+<pre><code class="language-ruby">delete_manager = Arel::DeleteManager.new(ActiveRecord::Base)
+delete_manager.from(users).where(users[:id].eq_any([4, 8]))
+delete_manager.to_sql
+# =&gt; DELETE FROM &quot;users&quot; WHERE (&quot;users&quot;.&quot;id&quot; = 4 OR &quot;users&quot;.&quot;id&quot; = 8)
+</code></pre>
+<p>The other way, although it seems deprecated, is to create the delete statement
+from a select statement by calling
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/crud.rb#L32-37">compile_delete</a>
+(there are similar methods for the other operations as well).  By looking at the
+code we can see that all it does is pick values out of the object it's mixed
+into (<code>Arel::SelectManager</code>) and passing it to a new instance of
+<code>Arel::DeleteManager</code>.</p>
+<pre><code class="language-ruby">select_manager = users.project(users[:id], users[:name]).where(users[:banned].eq(true))
+select_manager.to_sql
+# =&gt; SELECT &quot;users&quot;.&quot;id&quot;, &quot;users&quot;.&quot;name&quot; FROM &quot;users&quot;  WHERE &quot;users&quot;.&quot;banned = &#39;t&#39;
+
+delete_manager = select_manager.compile_delete
+delete_manager.to_sql
+# =&gt; DELETE FROM &quot;users&quot; WHERE &quot;users&quot;.&quot;banned&quot; = &#39;t&#39;
+</code></pre>
+<p>The managers for the remaining operations,
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/insert_manager.rb">InsertManager</a>
+and
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/update_manager.rb">UpdateManager</a>,
+work in a similar fashion.</p>
+<pre><code class="language-ruby">insert_manager = Arel::InsertManager.new(ActiveRecord::Base)
+insert_manager.insert([[users[:name], &quot;Bob&quot;], [users[:admin], true]])
+insert_manager.to_sql
+# =&gt; INSERT INTO &quot;users&quot; (&quot;name&quot;, &quot;admin) VALUES (&#39;Bob&#39;, &#39;t&#39;)
+</code></pre>
+<p>Notice that <code>Arel::InsertManager</code> is able to figure out the name of the table
+we're inserting to automatically through the use of <code>Arel::Attribute</code>. If we're to
+use string literals instead, we'd have to specify the table name via the
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/insert_manager.rb#L8-11">into</a>
+method. The same is not offered in <code>Arel::UpdateManager</code> and we have to use
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/update_manager.rb#L29-32">table</a>.</p>
+<pre><code class="language-ruby">update_manager = Arel::UpdateManager.new(ActiveRecord::Base)
+update_manager.table(users).where(users[:id].eq(42))
+update_manager.set([[users[:name], &quot;Bob&quot;], [users[:admin], true]])
+update_manager.to_sql
+# =&gt; UPDATE &quot;users&quot; SET &quot;name&quot; = &#39;Bob&#39;, &quot;admin&quot; = &#39;t&#39; WHERE &quot;users&quot;.&quot;id&quot; = 42
+</code></pre>
+<h2>The story of <code>.to_sql</code></h2>
+<p>Throughout the article we've been calling <code>.to_sql</code> in almost every example and
+never actually talked about how it works. As mentioned in the beginning, Arel
+internally represents all queries as nodes in an abstract syntax tree. The
+managers create and modify these trees. Naturally, something later has to take
+the resulting tree and process it to the final output. Arel uses various kinds
+of visitors to accomplish this (see the <a href="https://en.wikipedia.org/wiki/Visitor_pattern">Visitor
+pattern</a>).</p>
+<p>In essence, the visitor pattern abstracts away how the nodes of an AST are
+processed from the nodes themselves. The nodes stay the same, yet it's possible
+to apply different visitors and get different results. This is exactly what Arel
+needs to generate all those kinds of output formats.</p>
+<p>The Arel's implementation of the visitor pattern is interesting. It uses a
+variation called &quot;extrinsic visitor&quot;. The variation takes great advantage of
+Ruby's dynamic behavior and the information available at runtime. Instead of
+forcing the nodes to implement the <code>accept</code> method, the visitor calls
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L4-6">accept</a>
+on itself with the root node as argument. It then inspects the node to find out
+its type and
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L21-31">looks</a>
+the appropriate visit method. To make the dispatching part faster, the code
+uses a simple <a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/visitor.rb#L10-L15">hash
+table</a>
+for caching purposes.</p>
+<pre><code class="language-ruby">{
+  Arel::Visitors::SQLite =&gt; {
+    Arel::Nodes::SelectStatement =&gt; &quot;visit_Arel_Nodes_SelectStatement&quot;,
+    Arel::Nodes::SqlLiteral      =&gt; &quot;visit_Arel_Nodes_SqlLiteral&quot;,
+    Arel::Nodes::Or              =&gt; &quot;visit_Arel_Nodes_Or&quot;,
+    Arel::Attributes::Attribute  =&gt; &quot;visit_Arel_Attributes_Attribute&quot;,
+    Arel::Nodes::InnerJoin       =&gt; &quot;visit_Arel_Nodes_InnerJoin&quot;,
+    Arel::Nodes::Having          =&gt; &quot;visit_Arel_Nodes_Having&quot;,
+    Arel::Nodes::Limit           =&gt; &quot;visit_Arel_Nodes_Limit&quot;
+    Fixnum                       =&gt; &quot;visit_Fixnum&quot;,
+  }
+}
+</code></pre>
+<p>If we look into the <a href="https://github.com/rails/arel/tree/f50de54/lib/arel/visitors">visitors
+directory</a>, we can
+see a few visitors that Arel comes with by default. Some of them directly
+correspond to a particular database, some are used only internally and some are
+used only from AR. Notice that all database related visitors inherit from the
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/to_sql.rb">to_sql</a>
+visitor, which is doing most of the work, and that the particular database
+visitor handles only the differences specific to the concrete database. Let's
+create a select manager and get the SQL query out of it without the <code>to_sql</code>
+method.</p>
+<pre><code class="language-ruby">select_manager = users.project(Arel.star)
+select_manager.to_sql
+# =&gt; SELECT * FROM &quot;users&quot;
+
+sqlite_visitor = Arel::Visitors::SQLite.new(ActiveRecord::Base.connection)
+collector      = Arel::Collectors::SQLString.new
+collector      = sqlite_visitor.accept(select_manager.ast, collector)
+collector.value
+# =&gt; SELECT * FROM &quot;users&quot;
+</code></pre>
+<p>A collector is an object that gathers the results as they come in from the
+visitor. In this particular example, <code>collector</code> could have been a Ruby's own
+String and we'd get the same result (without calling the final <code>value</code> of
+course). If we look at the actual <a href="https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L27-L31">source
+code</a>
+of <code>to_sql</code>, we can see that it does the same except it gets the visitor
+directly from the connection.</p>
+<p>Let's take a look at one more visitor,
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/dot.rb">Arel::Visitors::Dot</a>.
+The visitor generates the Graphviz's Dot format and we can use it to create
+diagrams out of an AST. To make things easier, there's a convenient
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/tree_manager.rb#L17-L19">to_dot</a>
+method we can use. We take the output and save it to a file.</p>
+<pre><code class="language-ruby">File.write(&quot;arel.dot&quot;, select_manager.to_dot)
+</code></pre>
+<p>On the command line, we use the <code>dot</code> utility to convert the result to an image.</p>
+<pre><code class="language-bash">dot arel.dot -T png -o arel.png
+</code></pre>
+<div class="image">
+<a href="/posts/arel/arel_to_dot.png">
+<img src="/posts/arel/arel_to_dot_small.png" title="fu" />
+</a>
+</div>
+<h2>Back to upper levels</h2>
+<p>We have all this power at our disposal at the Arel level but how can we leverage
+it with ActiveRecord? Turns out that we can very easily get the underlying
+<code>Arel::Table</code> directly from our models with <code>&lt;Table&gt;.arel_table</code>. What's even
+better is that we can get the AST from our ActiveRecord's queries and
+manipulate it. A word of warning though, working with the underlying Arel object
+is not officially supported and things may change between releases without
+notice.</p>
+<p>First, we need a few throw-away tables and the corresponding ActiveRecord objects to work
+against. Let's go again with users and comments.</p>
+<pre><code class="language-ruby">class User &lt; ActiveRecord::Base
+  connection.create_table table_name, force: true do |t|
+    t.string :name, null: false
+    t.integer :karma, null: false, default: 0
+    t.boolean :vip, null: false, default: false
+    t.timestamps
+  end
+
+  create! [{name: &quot;Alice&quot;, karma: 999, vip: true}, {name: &quot;Bob&quot;, karma: 1000}, {name: &quot;Charlie&quot;}]
+
+  has_many :comments, dependent: :delete_all
+end
+
+class Comment &lt; ActiveRecord::Base
+  connection.create_table table_name, force: true do |t|
+    t.text :text, null: false
+    t.integer :points, null: false, default: 0
+    t.references :user
+    t.timestamps
+  end
+
+  belongs_to :user
+end
+</code></pre>
+<p>As mentioned in the previous paragraph, we can get the <code>Arel::Table</code> object out
+by calling
+<a href="https://github.com/rails/rails/blob/178448/activerecord/lib/active_record/core.rb#L216-L218">arel_table</a>
+on the model. Once we do that, we can use the same methods as we've been using
+so far throughout the text.</p>
+<pre><code class="language-ruby">u = User.arel_table
+User.where(u[:karma].gteq(1000).or(u[:vip].eq(true))).to_a
+# =&gt; [#&lt;User id: 1, name: &quot;Alice&quot;...&gt;, #&lt;User id: 2, name: &quot;Bob&quot;...&gt;]
+</code></pre>
+<p>Here we're passing an Arel node (<code>Arel::Nodes::Grouping</code>) directly to AR's
+<code>where</code>. No need to convert anything as AR knows how to deal with these objects.
+Let's switch the sides and use an AR query inside an Arel one.</p>
+<pre><code class="language-ruby">User.first.comments.create! text: &quot;Sample text!&quot;, points: 1001
+
+c             = Comment.arel_table
+popular_users = User.select(:id).order(karma: :desc).limit(5)
+comments      = c.project(Arel.star).where(c[:points].gt(1000).and(c[:user_id].in(popular_users.ast)))
+
+Comment.find_by_sql(comments.to_sql)
+</code></pre>
+<p>To execute Arel queries, we first need to get the SQL out of Arel and then feed
+it into
+<a href="https://github.com/rails/rails/blob/178448/activerecord/lib/active_record/querying.rb#L38-L49">find_by_sql</a>.
+Notice that we called <code>ast</code> on <code>popular_users</code> before passing it to Arel's
+<code>in</code>. That's because <code>popular_users</code> is an instance of <code>ActiveRecord::Relation</code>
+and we need to get the underlying Arel AST.</p>
+<p>There of course comes a time when you need to issue a query that doesn't
+necessarily result in records coming back.  In that case, we can use the
+connection directly and call <code>execute</code> with the SQL as the argument.</p>
+<pre><code class="language-ruby">ActiveRecord::Base.connection.execute(c.where(c[:id].eq(1)).compile_delete.to_sql)
+</code></pre>
+<p>One issue you may run into when using ActiveRecord 4.1.x is that calling <code>to_sql</code>
+might return an SQL query with bind parameters instead of the actual values. The
+issue has been solved on the current master branch and will be part of the next
+release. To get around that issue now however, we must use
+<code>unprepared_statement</code>.</p>
+<pre><code class="language-ruby"># ActiveRecord 4.1.x
+
+sql = User.first.comments.to_sql
+# =&gt; SELECT &quot;comments&quot;.* FROM &quot;comments&quot;  WHERE &quot;comments&quot;.&quot;user_id&quot; = ?
+
+sql = User.connection.unprepared_statement {
+  User.first.comments.to_sql
+}
+# =&gt; SELECT &quot;comments&quot;.* FROM &quot;comments&quot;  WHERE &quot;comments&quot;.&quot;user_id&quot; = 1
+</code></pre>
+<p>The code in the <code>unprepared_statement</code> block gets evaluated with a visitor that
+mixes in
+<a href="https://github.com/rails/arel/blob/f50de54/lib/arel/visitors/bind_visitor.rb">Arel::Visitors::BindVisitor</a>,
+which immediately resolves the bind parameters.</p>
+<h2>Real world</h2>
+<p>Having covered all of that, how do we use this in a real word application so
+that the code is maintainable and won't become a mess? One way of doing it is to
+create a class that will represent our query. Let's take a look at a simple
+example.</p>
+<pre><code class="language-ruby">class PrivilegedUsersQuery
+  attr_reader :relation
+
+  def initialize(relation = User.all)
+    @relation = relation
+  end
+
+  def find_each(&amp;block)
+    relation.where(privileged_users).find_each(&amp;block)
+  end
+
+  private
+
+  def privileged_users
+    with_high_karma.or with_vip
+  end
+
+  def with_high_karma
+    table[:karma].gt(1000)
+  end
+
+  def with_vip
+    table[:vip].eq(true)
+  end
+
+  def table
+    User.arel_table
+  end
+end
+</code></pre>
+<p>We take full advantage of the fact that we can build queries iteratively and
+dedicate a method to each part or similar, whatever feels like the best approach
+for the particular situation.</p>
+<pre><code class="language-ruby">PrivilegedUsersQuery.new.find_each do |user|
+ # ...
+end
+</code></pre>
+<h2>The end</h2>
+<p><a href="https://github.com/rails/arel">Arel</a> is a great tool to build abstractions upon
+and a powerful helper when the abstractions fail to provide the functionality
+you need. By now you know everything there's to know to use Arel effectively and
+most importantly you know where to look for answers when constructing a
+complicated query or when things go wrong. Please let me know if you found an
+error of any kind or have other suggestions.</p>
+
+
+            <p class="back"><a href="/">Go back to the front page</a></p>
+        </div>
+  </body>
+</html>
