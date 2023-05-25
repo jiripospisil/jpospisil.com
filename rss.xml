@@ -1,4 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>cobalt blog</title><link>http://example.com</link><description>Blog Posts Go Here</description><item><title>Understanding lock files in NPM 5</title><link>http://example.com/2017/06/02/understanding-lock-files-in-npm-5.html</link><description><![CDATA[<p>The next major version of NPM brings a number of improvements over the previous
+<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>cobalt blog</title><link>http://example.com</link><description>Blog Posts Go Here</description><item><title>Writing shell scripts in Nushell</title><link>http://example.com/2023/05/25/writing-shell-scripts-in-nushell.html</link><description><![CDATA[<p>I don’t like Bash. It’s just too confusing. Do I need to use double brackets
+for this? Do I need to quote this? Am I still writing <a href="https://en.wikipedia.org/wiki/Bash_(Unix_shell)">Bash</a> or am I sprinkling in
+some bits of <a href="https://en.wikipedia.org/wiki/Bourne_shell">sh</a>? I can never remember.</p>
+]]></description><guid>http://example.com/2023/05/25/writing-shell-scripts-in-nushell.html</guid><pubDate>Thu, 25 May 2023 00:00:00 +0000</pubDate></item><item><title>Understanding lock files in NPM 5</title><link>http://example.com/2017/06/02/understanding-lock-files-in-npm-5.html</link><description><![CDATA[<p>The next major version of NPM brings a number of improvements over the previous
 versions in terms of speed, security, and a bunch of other <a href="https://blog.npmjs.org/post/161276872334/npm5-is-now-npmlatest">nifty
 things</a>. What
 stands out from the user's perspective however is the new lock file. Actually

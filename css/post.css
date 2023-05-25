@@ -12,7 +12,7 @@ a {
   text-decoration: none;
   color: #000; }
 
-p > a {
+p a {
   font-weight: 400;
   text-decoration: underline; }
 
@@ -183,6 +183,21 @@ p > a {
   margin-left: 20px; }
 
 pre {
-  white-space2: pre-wrap;
   overflow-x: auto;
   padding: 10px; }
+
+@media (prefers-color-scheme: dark) {
+  pre {
+    background-color: #ddd !important; } }
+
+.image {
+  text-align: center;
+  margin: 20px 20px; }
+
+.image img {
+  max-width: 100%; }
+
+blockquote {
+  border-left: 4px solid gray;
+  padding-left: 20px;
+  margin-left: 0; }

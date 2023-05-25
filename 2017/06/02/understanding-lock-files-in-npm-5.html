@@ -50,27 +50,28 @@ looking at the file's diff during code reviews. It should be much cleaner now. <
 <code>lockfileVersion</code> and set to <code>1</code>. This is to enable future updates of the
 format without having to guess what particular version the file uses. The
 previous lock format is still supported and recognized as version <code>0</code>.</p>
-<pre><code class="language-json">{
-  &quot;name&quot;: &quot;package-name&quot;,
-  &quot;version&quot;: &quot;1.0.0&quot;,
-  &quot;lockfileVersion&quot;: 1,
-  &quot;dependencies&quot;: {
-    &quot;cacache&quot;: {
-      &quot;version&quot;: &quot;9.2.6&quot;,
-      &quot;resolved&quot;: &quot;https://registry.npmjs.org/cacache/-/cacache-9.2.6.tgz&quot;,
-      &quot;integrity&quot;: &quot;sha512-YK0Z5Np5t755edPL6gfdCeGxtU0rcW/DBhYhYVDckT+7AFkCCtedf2zru5NRbBLFk6e7Agi/RaqTOAfiaipUfg==&quot;
-    },
-    &quot;duplexify&quot;: {
-      &quot;version&quot;: &quot;3.5.0&quot;,
-      &quot;resolved&quot;: &quot;https://registry.npmjs.org/duplexify/-/duplexify-3.5.0.tgz&quot;,
-      &quot;integrity&quot;: &quot;sha1-GqdzAC4VeEV+nZ1KULDMquvL1gQ=&quot;,
-      &quot;dependencies&quot;: {
-        &quot;end-of-stream&quot;: {
-          &quot;version&quot;: &quot;1.0.0&quot;,
-          &quot;resolved&quot;: &quot;https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.0.0.tgz&quot;,
-          &quot;integrity&quot;: &quot;sha1-1FlucCc0qT5A6a+GQxnqvZn/Lw4=&quot;
-        },
-</code></pre>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">{
+</span><span style="color:#323232;">  </span><span style="font-weight:bold;color:#183691;">&quot;name&quot;</span><span style="color:#323232;">: &quot;package-name&quot;,
+</span><span style="color:#323232;">  </span><span style="font-weight:bold;color:#183691;">&quot;version&quot;</span><span style="color:#323232;">: &quot;1.0.0&quot;,
+</span><span style="color:#323232;">  </span><span style="font-weight:bold;color:#183691;">&quot;lockfileVersion&quot;</span><span style="color:#323232;">: </span><span style="color:#0086b3;">1</span><span style="color:#323232;">,
+</span><span style="color:#323232;">  </span><span style="font-weight:bold;color:#183691;">&quot;dependencies&quot;</span><span style="color:#323232;">: {
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#183691;">&quot;cacache&quot;</span><span style="color:#323232;">: {
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;version&quot;</span><span style="color:#323232;">: &quot;9.2.6&quot;,
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;resolved&quot;</span><span style="color:#323232;">: &quot;https://registry.npmjs.org/cacache/-/cacache-9.2.6.tgz&quot;,
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;integrity&quot;</span><span style="color:#323232;">: &quot;sha512-YK0Z5Np5t755edPL6gfdCeGxtU0rcW/DBhYhYVDckT+7AFkCCtedf2zru5NRbBLFk6e7Agi/RaqTOAfiaipUfg==&quot;
+</span><span style="color:#323232;">    },
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#183691;">&quot;duplexify&quot;</span><span style="color:#323232;">: {
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;version&quot;</span><span style="color:#323232;">: &quot;3.5.0&quot;,
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;resolved&quot;</span><span style="color:#323232;">: &quot;https://registry.npmjs.org/duplexify/-/duplexify-3.5.0.tgz&quot;,
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;integrity&quot;</span><span style="color:#323232;">: &quot;sha1-GqdzAC4VeEV+nZ1KULDMquvL1gQ=&quot;,
+</span><span style="color:#323232;">      </span><span style="font-weight:bold;color:#183691;">&quot;dependencies&quot;</span><span style="color:#323232;">: {
+</span><span style="color:#323232;">        </span><span style="font-weight:bold;color:#183691;">&quot;end-of-stream&quot;</span><span style="color:#323232;">: {
+</span><span style="color:#323232;">          </span><span style="font-weight:bold;color:#183691;">&quot;version&quot;</span><span style="color:#323232;">: &quot;1.0.0&quot;,
+</span><span style="color:#323232;">          </span><span style="font-weight:bold;color:#183691;">&quot;resolved&quot;</span><span style="color:#323232;">: &quot;https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.0.0.tgz&quot;,
+</span><span style="color:#323232;">          </span><span style="font-weight:bold;color:#183691;">&quot;integrity&quot;</span><span style="color:#323232;">: &quot;sha1-1FlucCc0qT5A6a+GQxnqvZn/Lw4=&quot;
+</span><span style="color:#323232;">        },
+</span></code></pre>
 <p>You might have noticed that the <code>resolved</code> field is still present in the file
 pointing to a specific URI. Note however that NPM is now able to figure out
 (based on the settings in <code>.npmrc</code>) that the machine is configured to use a

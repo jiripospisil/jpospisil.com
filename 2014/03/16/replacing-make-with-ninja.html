@@ -42,21 +42,22 @@ secret is to do the least amount of work possible and let other more high level
 tools to handle the rest upfront. </p>
 <p>Let's see an example of a simple script featuring all of the abstractions Ninja
 provides:</p>
-<pre><code class="language-bash"># build.ninja
-cc     = clang
-cflags = -Weverything
-
-rule compile
-  command = $cc $cflags -c $in -o $out
-
-rule link
-  command = $cc $in -o $out
-
-build hello.o: compile hello.c
-build hello: link hello.o
-
-default hello
-</code></pre>
+<pre style="background-color:#ffffff;">
+<code><span style="font-style:italic;color:#969896;"># build.ninja
+</span><span style="color:#323232;">cc     = clang
+</span><span style="color:#323232;">cflags = -Weverything
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">rule compile
+</span><span style="color:#323232;">  </span><span style="color:#62a35c;">command</span><span style="color:#323232;"> = $cc $cflags -c $in -o $out
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">rule link
+</span><span style="color:#323232;">  </span><span style="color:#62a35c;">command</span><span style="color:#323232;"> = $cc $in -o $out
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">build hello.o: compile hello.c
+</span><span style="color:#323232;">build hello: link hello.o
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">default hello
+</span></code></pre>
 <p>Putting aside the fact that there's no point in writing something like this for
 a single file, let's see what's going on there. First, we define 2 variables and
 later refer to them using the <code>$</code> sign. Second, there are rules. Rules are
@@ -87,30 +88,32 @@ The generator is straightforward, you call the methods and it outputs the
 corresponding Ninja syntax to a file. Since it's just Python, you can make all
 of the platform and compiler decisions here. In fact, this is the way Ninja
 itself is <a href="https://github.com/martine/ninja/blob/84986/configure.py">built</a>:</p>
-<pre><code class="language-python">from ninja_syntax import Writer
-
-with open(&quot;build.ninja&quot;, &quot;w&quot;) as buildfile:
-    n = Writer(buildfile)
-
-    if platform.is_msvc():
-        n.rule(&quot;link&quot;,
-                command=&quot;$cxx $in $libs /nologo /link $ldflags /out:$out&quot;,
-                description=&quot;LINK $out&quot;)
-    else:
-        n.rule(&quot;link&quot;,
-                command=&quot;$cxx $ldflags -o $out $in $libs&quot;,
-                description=&quot;LINK $out&quot;)
-</code></pre>
+<pre style="background-color:#ffffff;">
+<code><span style="font-weight:bold;color:#a71d5d;">from </span><span style="color:#323232;">ninja_syntax </span><span style="font-weight:bold;color:#a71d5d;">import </span><span style="color:#323232;">Writer
+</span><span style="color:#323232;">
+</span><span style="font-weight:bold;color:#a71d5d;">with </span><span style="color:#62a35c;">open</span><span style="color:#323232;">(</span><span style="color:#183691;">&quot;build.ninja&quot;</span><span style="color:#323232;">, </span><span style="color:#183691;">&quot;w&quot;</span><span style="color:#323232;">) </span><span style="font-weight:bold;color:#a71d5d;">as </span><span style="color:#323232;">buildfile:
+</span><span style="color:#323232;">    n </span><span style="font-weight:bold;color:#a71d5d;">= </span><span style="color:#323232;">Writer(buildfile)
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">if </span><span style="color:#323232;">platform.is_msvc():
+</span><span style="color:#323232;">        n.rule(</span><span style="color:#183691;">&quot;link&quot;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">                command</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#183691;">&quot;$cxx $in $libs /nologo /link $ldflags /out:$out&quot;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">                description</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#183691;">&quot;LINK $out&quot;</span><span style="color:#323232;">)
+</span><span style="color:#323232;">    </span><span style="font-weight:bold;color:#a71d5d;">else</span><span style="color:#323232;">:
+</span><span style="color:#323232;">        n.rule(</span><span style="color:#183691;">&quot;link&quot;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">                command</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#183691;">&quot;$cxx $ldflags -o $out $in $libs&quot;</span><span style="color:#323232;">,
+</span><span style="color:#323232;">                description</span><span style="font-weight:bold;color:#a71d5d;">=</span><span style="color:#183691;">&quot;LINK $out&quot;</span><span style="color:#323232;">)
+</span></code></pre>
 <p>The fun part is that Ninja is already supported by some of the most popular meta
 build systems out there - <a href="https://www.cmake.org">CMake</a> and
 <a href="https://code.google.com/p/gyp">Gyp</a>. If you have a CMake based project and
 assuming you have Ninja available in your PATH, all you need to do is to choose
 Ninja as the
 <a href="https://www.cmake.org/cmake/help/v2.8.12/cmake.html#section_Generators">generator</a>:</p>
-<pre><code class="language-bash">$ cd libgit2 &amp;&amp; mkdir build &amp;&amp; cd build
-$ cmake -GNinja ..
-$ ninja
-</code></pre>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ cd libgit2 </span><span style="font-weight:bold;color:#a71d5d;">&amp;&amp; </span><span style="color:#323232;">mkdir build </span><span style="font-weight:bold;color:#a71d5d;">&amp;&amp; </span><span style="color:#62a35c;">cd</span><span style="color:#323232;"> build
+</span><span style="color:#323232;">$ cmake -GNinja ..
+</span><span style="color:#323232;">$ ninja
+</span></code></pre>
 <p>With this change, CMake generates a bunch of Ninja build files and Ninja builds
 the project. Notice that there's no need to specify the number of parallel jobs
 (<code>-j [jobs]</code>) because Ninja automatically chooses the value based on the number
