@@ -1,4 +1,5 @@
 /.bundle
 /build
+/generated
 /.sass-cache
 /.cache

@@ -36,7 +36,7 @@ internally operates on AST nodes - you modify the query via a method call, Arel
 modifies or creates the appropriate node in the tree.
 
 <div class="image">
-<img src="/posts/arel/ast.png" width="347px" height="159px" title="An select query represented via AST" />
+<img src="/posts/arel/ast.png" title="An select query represented via AST" />
 </div>
 
 This kind of representation holds two important properties. First,
@@ -70,7 +70,7 @@ fact, Arel is able to convert the query into the Graphviz's dot format and you
 can create pretty diagrams out of it (more on that later).
 
 <div class="image">
-<img src="/posts/arel/arel_to_formats.png" width="356px" height="96px" title="Arel converted to other formats" />
+<img src="/posts/arel/arel_to_formats.png" title="Arel converted to other formats" />
 </div>
 
 So far we've seen only [ActiveRecord's query
@@ -490,7 +490,7 @@ dot arel.dot -T png -o arel.png
 
 <div class="image">
 <a href="/posts/arel/arel_to_dot.png">
-<img src="/posts/arel/arel_to_dot_small.png" title="fu" />
+<img src="/posts/arel/arel_to_dot_small.png">
 </a>
 </div>
 

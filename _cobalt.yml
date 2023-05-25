@@ -8,4 +8,4 @@ posts:
 
 syntax_highlight:
   theme: "InspiredGitHub"
-  enabled: false
+  enabled: true
