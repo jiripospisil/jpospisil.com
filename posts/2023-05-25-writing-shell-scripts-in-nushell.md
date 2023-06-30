@@ -297,8 +297,10 @@ cat: missing: No such file or directory
 0
 ```
 
-What if we wanted the same behavior in Nushell? We can achieve it using the [do]
-command, albeit it makes working with external commands a bit awkward.
+What if we wanted a similar behavior in Nushell? We can achieve it using the
+[do] command, albeit it makes working with external commands a bit awkward.
+Commands wrapped in *do -c* are eagerly evaluated and the entire pipeline is
+canceled. The wc commands doesn't get to run at all.
 
 [do]: https://www.nushell.sh/commands/docs/do.html
 
