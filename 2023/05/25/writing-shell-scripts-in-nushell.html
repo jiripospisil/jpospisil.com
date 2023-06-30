@@ -3,10 +3,7 @@
     <head>
         
         <meta charset="utf-8">
-<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Regular.woff2?v=3.19" as="font">
-<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Light.woff2?v=3.19" as="font">
-<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-Bold.woff2?v=3.19" as="font">
-<link rel="preload" crossorigin="anonymous" href="/fonts/Inter-SemiBold.woff2?v=3.19" as="font">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preload" crossorigin="anonymous" href="/css/default.css" as="style">
 <link rel="preload" crossorigin="anonymous" href="/css/post.css" as="style">
 
@@ -254,8 +251,10 @@ same but we can change it.</p>
 </span><span style="color:#323232;">cat: missing: No such file or directory
 </span><span style="color:#323232;">0
 </span></code></pre>
-<p>What if we wanted the same behavior in Nushell? We can achieve it using the <a href="https://www.nushell.sh/commands/docs/do.html">do</a>
-command, albeit it makes working with external commands a bit awkward.</p>
+<p>What if we wanted a similar behavior in Nushell? We can achieve it using the
+<a href="https://www.nushell.sh/commands/docs/do.html">do</a> command, albeit it makes working with external commands a bit awkward.
+Commands wrapped in <em>do -c</em> are eagerly evaluated and the entire pipeline is
+canceled. The wc commands doesn't get to run at all.</p>
 <pre style="background-color:#ffffff;">
 <code><span style="color:#323232;">do -c { cat missing } | wc -c
 </span><span style="color:#323232;">print &quot;Hm!&quot;
