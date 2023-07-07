@@ -1,9 +1,11 @@
 :root { 
   font-family: system-ui, sans-serif; 
-  font-weight: 300;
+  font-weight: 400;
   font-size: 15px;
   line-height: 23px;
-  color: #000;
+  color: rgb(53, 55, 58);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1 {
