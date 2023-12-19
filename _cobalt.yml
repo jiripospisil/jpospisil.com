@@ -5,6 +5,7 @@ site:
   base_url: https://jpospisil.com
 posts:
   rss: rss.xml
+  drafts_dir: _drafts
 
 syntax_highlight:
   theme: "InspiredGitHub"
