@@ -75,3 +75,6 @@ p a {
 
 .icons {
   margin-top: 20px; }
+
+.icons a + a {
+  margin-left: 20px; }

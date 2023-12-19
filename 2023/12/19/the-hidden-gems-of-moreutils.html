@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>
+            The hidden gems of moreutils - Jiri Pospisil
+        </title>
+<link rel="preload" crossorigin="anonymous" href="/css/default.css" as="style">
+<link rel="preload" crossorigin="anonymous" href="/css/post.css" as="style">
+<link rel="stylesheet" crossorigin="anonymous" href="/css/post.css">
+<link rel="icon" crossorigin="anonymous" href="/images/favicon.png">
+<link rel="alternate" type="application/rss+xml" href="/rss.xml">
+
+    </head>
+
+    <body>
+        <div class="container">
+            <h1><a href="/2023/12/19/the-hidden-gems-of-moreutils.html">The hidden gems of moreutils</a></h1>
+
+            <div class="topbar">
+                <a href="/"><img class="logo" height="30px" src="/images/logo.jpg"></a>
+                <div class="name"><a href="/">Jiri Pospisil</a></div>
+    			<span class="published">Published Dec 19, 2023</span>
+            </div>
+
+            <p>It seems no matter how long I work with the command line, every once in a while
+I find handy utilities I've never encountered before. Most people have heard
+about <strike>the bird</strike> <a href="https://www.gnu.org/software/coreutils/">coreutils</a>, that's where utilities such as
+<code>echo</code>, <code>cat</code>, and others come from. But did you know about <a href="https://joeyh.name/code/moreutils/">moreutils</a>?</p>
+<h4>ts</h4>
+<p>Say I want to trace every program invocation (~<em>exec()</em>) on the system. I can do
+that with <code>execsnoop</code> from the <a href="https://github.com/iovisor/bcc">BPF Compiler Collection</a>.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;"># execsnoop
+</span><span style="color:#323232;">ls   1586  1401  0  /usr/bin/ls --color=auto -F
+</span><span style="color:#323232;">git  1587  1401  0  /usr/bin/git rev-parse ...
+</span></code></pre>
+<p>Apparently every time I touch a terminal, it runs Git to determine whether I'm
+within a Git repository just so that it can show me the current branch in the
+prompt. Surely that doesn't slow things down. What it doesn't show me is the
+time of the invocation though. I can easily add it with <code>ts</code>.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;"># execsnoop | ts
+</span><span style="color:#323232;">Dec 19 12:39:25 ls   1791  1401  0 /usr/bin/ls --color=auto -F
+</span><span style="color:#323232;">Dec 19 12:39:25 git  1792  1401  0 /usr/bin/git rev-parse ...
+</span></code></pre>
+<p>I now realize that <code>execsnoop</code> does have the <code>-T</code> flag which adds invocation
+times so there's no need for <code>ts</code> in this case but I've already written these
+examples so yeah. <code>ts</code> can also convert time stamps into relative times. This is
+especially handy when looking through log files.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ journalctl --since yesterday --priority emerg..warning
+</span><span style="color:#323232;">Dec 18 19:30:47 vm sudo[5068]:  user: 3 incorrect password attempts
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">$ journalctl --since yesterday --priority emerg..warning | ts -r
+</span><span style="color:#323232;">18h7m ago vm sudo[5068]:  user: 3 incorrect password attempts
+</span></code></pre>
+<h4>sponge</h4>
+<p>Have you ever wanted to modify a file, save the result into the same file, and
+got quickly disappointed with the result?</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ echo 1\n3\n2 &gt; file.txt
+</span><span style="color:#323232;">$ sort file.txt &gt; file.txt
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">$ wc -l file.txt
+</span><span style="color:#323232;">0 file.txt # empty
+</span></code></pre>
+<p>Remember, it is the shell which is responsible for redirecting the output, not
+the individual commands. In this case, when the shell sees <em>&gt; file.txt</em>, it
+opens <code>file.txt</code> for writing (or creates it if necessary). Crucially, it also
+opens the file with the <code>O_TRUNC</code> flag which instantly truncates (empties) the
+file. When <code>sort</code> later opens the file to do the actual work, it finds the file
+empty and exits.</p>
+<p>The most common workaround is to first redirect the output to a temporary file
+and then move it back to the original name. And that's exactly what <code>sponge</code>
+does behind the scenes for you.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">echo 1\n3\n2 &gt; file.txt
+</span><span style="color:#323232;">sort file.txt | sponge file.txt
+</span></code></pre>
+<p>Interestingly, some of the commands from <code>coreutils</code> have a &quot;-o&quot; flag. I could
+have just written <code>sort -o file.txt file.txt</code>. Oh well.</p>
+<h4>vidir</h4>
+<p>This is probably what I use most often. Running <code>vidir</code> opens your <code>$EDITOR</code> or
+<code>$VISUAL</code> with files / directories of the specified directory (or the current
+directory) and allows you to edit them. If you change the name, it will rename
+it. If you delete a file row, the file gets deleted. To delete an entire
+directory with everything in it, delete its row and all sub entries.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">vidir *.pdf
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">fd -t f | vidir -
+</span></code></pre>
+<p>What if you've made so many great changes that you want to just quit the editor
+without applying any of them? You just need to quit the editor with exit code
+<code>1</code>. In Vim / Helix you do that with <code>:cq</code>. This by the way works in pretty
+much all cases where a command invokes your editor (e.g. when writing a commit
+message).</p>
+<p>If your distribution doesn't provide <code>moreutils</code>, there's also <code>qmv</code> from
+<a href="https://www.nongnu.org/renameutils">renameutils</a>.</p>
+<h4>vipe</h4>
+<p>This is a bit dirty but can be useful sometimes. Imagine you want to process a
+bunch of files but cannot get the damned file name regex right and so you have
+a few extra files in the output. You could just write the output to a file, edit
+it, and continue from there but there a more fragile option - edit the output
+right between the pipes!</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">fd | vipe | ...
+</span></code></pre>
+<p>In this case, the output from <code>fd</code> will be buffered by <code>vipe</code> and passed to your
+configured text editor. You can make any changes you want and once you quit, the
+data will be passed down the pipe if any. The downside is that if you want to
+run the command again, you will need to also edit output again. It's probably a
+better idea to just write it into a file. At least in this scenario.</p>
+<h4>pee</h4>
+<p>I'm going to mention this not because I have an actual use case for this but
+just because it took me a second to realize what it actually does. <code>pee</code> takes
+its stdin and passes it to all commands given as arguments. It then gathers
+their output and sends that as its own output. It runs the commands using
+<a href="https://www.man7.org/linux/man-pages/man3/popen.3.html">popen</a>, so it's actually passing them to <code>/bin/sh -c</code> (which on most systems is
+a symlink to Bash).</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ echo &quot;Alice&quot; | pee &quot;xargs echo Hello&quot; &quot;xargs echo Hi&quot;
+</span><span style="color:#323232;">Hello Alice
+</span><span style="color:#323232;">Hi Alice
+</span></code></pre>
+<p>I think those are all the commands I regularly use / I've used. There are  more
+available, such as <code>chronic</code> (print output only if the command failed) or <code>ifne</code>
+(run command only if there's non empty stdin) but I haven't needed them yet.</p>
+<p>Besides more commands in <code>moreutils</code>, there are even more of these command sets such as <a href="https://github.com/rudymatela/evenmoreutils">evenmoreutils</a> or <a href="https://suso.suso.org/programs/num-utils/index.phtml">num-utils</a>.</p>
+
+
+            <p class="back"><a href="/">Go back to the front page</a></p>
+        </div>
+  </body>
+</html>
