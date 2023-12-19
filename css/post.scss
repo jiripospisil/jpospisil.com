@@ -34,6 +34,10 @@ pre {
   padding: 10px;
 }
 
+pre {
+  background-color: #f6f6f6 !important;
+}
+
 @media (prefers-color-scheme: dark) {
   pre {
     background-color: #ddd !important;
@@ -58,3 +62,9 @@ blockquote {
 em {
   font-size: 14px;
 }
+
+h4 {
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
