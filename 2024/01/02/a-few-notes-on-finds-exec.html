@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        
+        <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>
+            A few notes on find's exec - Jiri Pospisil
+        </title>
+<link rel="preload" crossorigin="anonymous" href="/css/default.css" as="style">
+<link rel="preload" crossorigin="anonymous" href="/css/post.css" as="style">
+<link rel="stylesheet" crossorigin="anonymous" href="/css/post.css">
+<link rel="icon" crossorigin="anonymous" href="/images/favicon.png">
+<link rel="alternate" type="application/rss+xml" href="/rss.xml">
+
+    </head>
+
+    <body>
+        <div class="container">
+            <h1><a href="/2024/01/02/a-few-notes-on-finds-exec.html">A few notes on find's exec</a></h1>
+
+            <div class="topbar">
+                <a href="/"><img class="logo" height="30px" src="/images/logo.jpg"></a>
+                <div class="name"><a href="/">Jiri Pospisil</a></div>
+    			<span class="published">Published Jan 02, 2024</span>
+            </div>
+
+            <p>Did you know that many dynamic libraries (<code>*.so</code>) on your system are not actually
+binaries but rather ASCII files?</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ file /usr/lib/libc.so
+</span><span style="color:#323232;">/usr/lib/libc.so: ASCII text
+</span><span style="color:#323232;">
+</span><span style="color:#323232;">$ file -b --mime-type /usr/lib/libc.so
+</span><span style="color:#323232;">text/plain
+</span></code></pre>
+<p>These are called <a href="https://sourceware.org/binutils/docs/ld/Scripts.html">Linker scripts</a>, mostly used to reference other libraries,
+define sections and such, but, to the great amusement of linker authors, can do
+plenty of other complex things as well. Fortunately, you can usually get away
+with implementing just the <a href="https://github.com/rui314/mold/blob/fe118f634780e22107c6aab2f8fffad3eee7a69b/docs/design.md#linker-script">basics</a>.</p>
+<p>Anyway, how would one go about finding all dynamic libraries which are in fact
+ASCII files in disguise?</p>
+<p>Well, we have the <code>file</code> command which seems to work just fine, we just need
+to hook it up to a file finding utility. Usually I would go with <a href="https://github.com/sharkdp/fd">fd</a> but
+unfortunately while it does have the ability to execute a command per file, it
+does not allow filtering based on the command's return code.</p>
+<p>What about the good ol' find?</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">-exec command ;
+</span><span style="color:#323232;">              Execute command; true if 0 status is returned. (...)
+</span></code></pre>
+<p>The <code>exec</code> action returns true if the command returned status 0. That's exactly
+what we want. As a side note, it might seem kind of weird to talk about &quot;exec&quot;
+as &quot;action&quot; but <code>find</code> doesn't really accept a bunch of arguments, it accepts an
+expression. It's an entire language. That's what <code>fd</code> authors mean when they say
+&quot;it does not aim to support all of find's powerful functionality&quot;.</p>
+<p>Alright, so we just need to pass in a command which will examine the given file
+and return 0 if it matches &quot;text/plain&quot;, 1 otherwise. An inline Bash script
+will do. Always does.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;"># This is wrong!
+</span><span style="color:#323232;">-exec bash -c &#39;[[ $(file -b --mime-type &quot;{}&quot;) == &quot;text/plain&quot; ]]&#39; \; -print
+</span></code></pre>
+<p>The <code>exec</code> action considers everything up until <code>;</code> (or <code>+</code>) as the command,
+followed by another action <code>-print</code> to actually print any matches (<code>-print</code> is
+usually the default action but not when using <code>-exec</code> and a few others).</p>
+<p>To pass the current file being examined, <code>-exec</code> will replace all occurrences
+of <code>{}</code> with the file relative to the searched directory (you can also do
+<code>-execdir</code> which will cd into the file's directory).</p>
+<p>What's wrong with this? The problem is that we're literally building the shell
+script by concatenating a bunch of strings. What if the file name contained some
+weird characters such as quotes (or worse)? It would cause a syntax error (or
+command execution). Probably not in this case, but what if!</p>
+<p>Okay but how do we pass in the file name without string concatenation? We turn
+to the Bash's manual page of course.</p>
+<blockquote>
+<p>If the -c option is present, then commands are read from the first non-option
+argument command_string. If there are arguments after the command_string, the
+first argument is assigned to $0 and any remaining arguments are assigned to
+the positional parameters. The assignment to $0 sets the name of the shell,
+which is used in warning and error messages.</p>
+</blockquote>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ bash -c &#39;echo $1&#39; bash Hello
+</span><span style="color:#323232;">Hello
+</span></code></pre>
+<p>What this means is that we can rewrite the query to instead refer to the <code>$1</code>
+variable and avoid interpolating the string altogether.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">-exec bash -c &#39;[[ $(file -b --mime-type &quot;$1&quot;) == &quot;text/plain&quot; ]]&#39; bash &#39;{}&#39; \; -print
+</span></code></pre>
+<p>Why put quotes around <code>{}</code>? It's probably not needed anymore, most shells leave
+them intact. There was however time when Fish replaced empty brackets with an
+empty string. <a href="https://github.com/fish-shell/fish-shell/pull/4632">Fixed</a> in Fish <a href="https://github.com/fish-shell/fish-shell/releases/tag/3.0.0">3.0.0</a>, released Dec 28, 2018. So just in case.</p>
+<p>Running this on my Arch machine gives the following list:</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">$ find /usr/lib -name &quot;*.so&quot; -exec bash -c &#39;[[ $(file -b --mime-type &quot;$1&quot;) == &quot;text/plain&quot; ]]&#39; bash &#39;{}&#39; \; -print
+</span><span style="color:#323232;">/usr/lib/libbsd.so
+</span><span style="color:#323232;">/usr/lib/libmenu.so
+</span><span style="color:#323232;">/usr/lib/libc.so
+</span><span style="color:#323232;">/usr/lib/libtic.so
+</span><span style="color:#323232;">/usr/lib/libpanel.so
+</span><span style="color:#323232;">/usr/lib/libncurses++.so
+</span><span style="color:#323232;">/usr/lib/libbfd.so
+</span><span style="color:#323232;">/usr/lib/libopcodes.so
+</span><span style="color:#323232;">/usr/lib/libgcc_s.so
+</span><span style="color:#323232;">/usr/lib/libc++.so
+</span><span style="color:#323232;">/usr/lib/libm.so
+</span><span style="color:#323232;">/usr/lib/libtinfo.so
+</span><span style="color:#323232;">/usr/lib/libncurses.so
+</span><span style="color:#323232;">/usr/lib/libform.so
+</span><span style="color:#323232;">/usr/lib/libcursesw.so
+</span></code></pre>
+<p>Of course there are many other ways how you can achieve the same thing. If you
+don't intent to use any other filtering, you might not actually need <code>find</code>
+at all and could use your shell directly. This is what it would look like in
+<a href="https://www.nushell.sh">Nushell</a>.</p>
+<pre style="background-color:#ffffff;">
+<code><span style="color:#323232;">ls /usr/lib/**/*.so | where { (file -b --mime-type $in.name) == &quot;text/plain&quot; }
+</span></code></pre>
+<p>Nushell does have the ability to display mime types directly with <code>ls -m</code> but
+for performance reasons it only examines the file extension, not the actual
+content. I have written about Nushell <a href="/2023/05/25/writing-shell-scripts-in-nushell.html">before</a>.</p>
+
+
+            <p class="back"><a href="/">Go back to the front page</a></p>
+        </div>
+  </body>
+</html>
